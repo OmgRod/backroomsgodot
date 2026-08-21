@@ -7,7 +7,7 @@
 albedo_texture = ExtResource("1_22gdf")
 albedo_texture_force_srgb = true
 emission_enabled = true
-emission_energy_multiplier = 0.5
+emission_energy_multiplier = 2.0
 emission_texture = ExtResource("1_22gdf")
 normal_enabled = true
 normal_texture = ExtResource("1_fdclo")

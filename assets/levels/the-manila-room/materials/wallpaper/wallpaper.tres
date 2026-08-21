@@ -1,0 +1,7 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://dkhheoe86xo12"]
+
+[ext_resource type="Texture2D" uid="uid://br673laqfurxp" path="res://assets/levels/the-manila-room/materials/wallpaper/wallpaper.jpeg" id="1_xwya0"]
+
+[resource]
+albedo_texture = ExtResource("1_xwya0")
+uv1_triplanar = true

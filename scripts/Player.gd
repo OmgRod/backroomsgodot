@@ -82,6 +82,7 @@ func _ready() -> void:
 		collision_shape.shape = collision_shape.shape.duplicate()
 
 	get_tree().create_timer(0.3).timeout.connect(func(): is_frozen = false)
+	register_console_commands()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if is_frozen:
@@ -274,3 +275,51 @@ func check_and_play_surface_sound() -> void:
 	if mat_type == "carpet":
 		if is_instance_valid(footstep_audio):
 			footstep_audio.play()
+
+func _exit_tree() -> void:
+	var console_node = get_node_or_null("/root/Console")
+	if console_node and console_node.has_method("remove_command"):
+		console_node.remove_command("tp")
+
+# ==========================================
+# CONSOLE COMMAND SYSTEM
+# ==========================================
+func register_console_commands() -> void:
+	var console_node = get_node_or_null("/root/Console")
+	if console_node:
+		console_node.add_command("tp", _cmd_tp, 3)
+
+func _cmd_tp(x_str: String, y_str: String, z_str: String) -> void:
+	var console_node = get_node_or_null("/root/Console")
+	var current_pos = global_position
+
+	var target_x = _parse_coordinate_component(x_str, current_pos.x)
+	var target_y = _parse_coordinate_component(y_str, current_pos.y)
+	var target_z = _parse_coordinate_component(z_str, current_pos.z)
+
+	if is_nan(target_x) or is_nan(target_y) or is_nan(target_z):
+		if console_node:
+			console_node.print_line("Error: Invalid coordinates supplied. Usage: tp <x> <y> <z>")
+		return
+
+	velocity = Vector3.ZERO
+	global_position = Vector3(target_x, target_y, target_z)
+
+	if console_node:
+		console_node.print_line("Teleported player to: (%.2f, %.2f, %.2f)" % [target_x, target_y, target_z])
+
+func _parse_coordinate_component(val_str: String, current_axis_val: float) -> float:
+	val_str = val_str.strip_edges()
+
+	if val_str.begins_with("~"):
+		var offset_str = val_str.substr(1)
+		if offset_str.is_empty():
+			return current_axis_val
+		elif offset_str.is_valid_float():
+			return current_axis_val + offset_str.to_float()
+		else:
+			return NAN
+	elif val_str.is_valid_float():
+		return val_str.to_float()
+
+	return NAN
