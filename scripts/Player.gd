@@ -21,14 +21,26 @@ const CROUCH_LERP_SPEED = 10.0
 
 # Dynamic FOV Configuration
 const BASE_FOV = 75.0
-const MAX_FOV = 95.0          # Hard upper cap so high speeds don't flip the camera
-const FOV_SPEED_SCALE = 0.5    # Controls how strongly speed affects FOV expansion
+const MAX_FOV = 95.0
+const FOV_SPEED_SCALE = 0.5
 const FOV_LERP_SPEED = 6.0
 
+# Dynamic Head Bob / Camera Shake Settings
+const BOB_WALK_FREQ = 12.0
+const BOB_SPRINT_FREQ = 16.0
+const BOB_CROUCH_FREQ = 8.0
+
+const BOB_WALK_AMP = Vector2(0.02, 0.035)    # (X = horizontal sway, Y = vertical bob)
+const BOB_SPRINT_AMP = Vector2(0.04, 0.06)
+const BOB_CROUCH_AMP = Vector2(0.01, 0.015)
+
+const BOB_LERP_SPEED = 10.0
+var bob_timer: float = 0.0
+
 # Tuned Stamina Rates (Units per second)
-const STAMINA_DRAIN_RATE = 10.0   # Lasts 10 full seconds of continuous sprinting (down from 25)
-const STAMINA_WALK_REGEN = 12.0   # Regenerates faster while walking (up from 8)
-const STAMINA_IDLE_REGEN = 25.0   # Quickly recovers when standing still (up from 20)
+const STAMINA_DRAIN_RATE = 10.0
+const STAMINA_WALK_REGEN = 12.0
+const STAMINA_IDLE_REGEN = 25.0
 
 # Dynamic Footstep Cadence
 const BASE_STEP_INTERVAL = 0.36
@@ -39,7 +51,7 @@ var step_timer: float = 0.0
 # State
 var is_sprinting: bool = false
 var is_crouching: bool = false
-var is_frozen: bool = true # Frozen on startup to prevent falling through void before chunks generate
+var is_frozen: bool = true
 
 # Mobile Touch Look Tracking
 var touch_look_finger_id: int = -1
@@ -56,6 +68,9 @@ var touch_look_finger_id: int = -1
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
+	if not is_in_group("player"):
+		add_to_group("player")
+
 	if not OS.has_feature("mobile") and not DisplayServer.is_touchscreen_available():
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	else:
@@ -63,49 +78,43 @@ func _ready() -> void:
 
 	camera.fov = BASE_FOV
 
-	# Duplicate collision shape resource so crouching doesn't mutate shared engine shapes
 	if collision_shape and collision_shape.shape:
 		collision_shape.shape = collision_shape.shape.duplicate()
+
+	get_tree().create_timer(0.3).timeout.connect(func(): is_frozen = false)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if is_frozen:
 		return
 
-	# Desktop: Re-capture mouse on left click
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if Input.mouse_mode == Input.MOUSE_MODE_VISIBLE and not DisplayServer.is_touchscreen_available():
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 			get_viewport().set_input_as_handled()
 			return
 
-	# Desktop: Release mouse focus on ESC
 	if event.is_action_pressed("ui_cancel"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		return
 
-	# Desktop Mouse Looking
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_camera(event.relative * MOUSE_SENSITIVITY)
 
-	# Mobile Touch Looking (Dragging right side of screen)
 	handle_mobile_touch_look(event)
 
 	if event.is_action_pressed("crouch"):
 		toggle_crouch()
 
 func handle_mobile_touch_look(event: InputEvent) -> void:
-	# Ignore on non-touch devices
 	if not DisplayServer.is_touchscreen_available() and not OS.has_feature("mobile"):
 		return
 
 	var viewport_size = get_viewport().get_visible_rect().size
 
 	if event is InputEventScreenTouch:
-		# Finger pressed down on the right half of the screen
 		if event.pressed and event.position.x > viewport_size.x * 0.4:
 			if touch_look_finger_id == -1:
 				touch_look_finger_id = event.index
-		# Finger released
 		elif not event.pressed and event.index == touch_look_finger_id:
 			touch_look_finger_id = -1
 
@@ -118,27 +127,21 @@ func rotate_camera(relative_delta: Vector2) -> void:
 	camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-89), deg_to_rad(89))
 
 func _physics_process(delta: float) -> void:
-	# Halt movement & gravity until ChunkManager finishes initial floor spawn
 	if is_frozen:
 		velocity = Vector3.ZERO
 		return
 
-	# Apply gravity
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 
-	# Handle jump
 	if Input.is_action_pressed("jump") and is_on_floor() and not is_crouching:
 		velocity.y = JUMP_VELOCITY
 
-	# Fetch input direction (Works seamlessly with physical keys OR Virtual Joystick / TouchScreenButtons)
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
 	var direction := (head.global_transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 
-	# Process stamina and calculate current target speed
 	var current_target_speed = handle_stamina_and_speed(delta, direction)
 
-	# Movement interpolation
 	var accel_rate = ACCELERATION if is_on_floor() else AIR_CONTROL
 	if direction:
 		var target_velocity = direction * current_target_speed
@@ -152,6 +155,7 @@ func _physics_process(delta: float) -> void:
 	handle_crouch_transform(delta)
 	handle_footsteps(delta)
 	handle_camera_fov(delta)
+	handle_head_bob(delta)
 
 func toggle_crouch() -> void:
 	if is_crouching:
@@ -174,7 +178,6 @@ func handle_stamina_and_speed(delta: float, direction: Vector3) -> float:
 			is_sprinting = true
 			return SPRINT_SPEED
 
-	# Fallback to walking/idle if sprint failed or isn't requested
 	is_sprinting = false
 	if direction == Vector3.ZERO:
 		Global.regen_stamina(STAMINA_IDLE_REGEN * delta)
@@ -198,16 +201,37 @@ func handle_crouch_transform(delta: float) -> void:
 func handle_camera_fov(delta: float) -> void:
 	var horizontal_speed = Vector2(velocity.x, velocity.z).length()
 
-	# Calculate how much faster or slower we are moving relative to base WALK_SPEED
-	# At WALK_SPEED (3.2), speed_factor is 0.0 -> target_fov = BASE_FOV
-	# At SPRINT_SPEED (4.8), speed_factor is +0.5 -> target_fov grows
-	# At CROUCH_SPEED (1.8), speed_factor is negative -> target_fov shrinks slightly
 	var speed_factor = (horizontal_speed - WALK_SPEED) / WALK_SPEED
-
 	var target_fov = BASE_FOV + (speed_factor * BASE_FOV * FOV_SPEED_SCALE)
 	target_fov = clamp(target_fov, BASE_FOV - 5.0, MAX_FOV)
 
 	camera.fov = lerp(camera.fov, target_fov, FOV_LERP_SPEED * delta)
+
+func handle_head_bob(delta: float) -> void:
+	var horizontal_speed = Vector2(velocity.x, velocity.z).length()
+
+	# Determine target frequency and amplitude based on state
+	var target_freq = BOB_WALK_FREQ
+	var target_amp = BOB_WALK_AMP
+
+	if is_sprinting:
+		target_freq = BOB_SPRINT_FREQ
+		target_amp = BOB_SPRINT_AMP
+	elif is_crouching:
+		target_freq = BOB_CROUCH_FREQ
+		target_amp = BOB_CROUCH_AMP
+
+	var target_offset := Vector3.ZERO
+
+	if is_on_floor() and horizontal_speed > 0.4:
+		bob_timer += delta * target_freq
+		target_offset.x = cos(bob_timer * 0.5) * target_amp.x
+		target_offset.y = sin(bob_timer) * target_amp.y
+	else:
+		bob_timer = 0.0
+
+	# Interpolate Camera's local position relative to Head
+	camera.position = camera.position.lerp(target_offset, BOB_LERP_SPEED * delta)
 
 func handle_footsteps(delta: float) -> void:
 	var horizontal_speed = Vector2(velocity.x, velocity.z).length()

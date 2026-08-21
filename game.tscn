@@ -6,9 +6,9 @@
 
 [node name="Game" type="Node3D" unique_id=1648927474]
 
-[node name="Level0" parent="." unique_id=666450966 instance=ExtResource("1_feb5d")]
-
-[node name="Player" parent="Level0" unique_id=630974680 instance=ExtResource("2_fc0e3")]
+[node name="Player" parent="." unique_id=630974680 instance=ExtResource("2_fc0e3")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1001196, 0)
+
+[node name="Level0" parent="." unique_id=666450966 instance=ExtResource("1_feb5d")]
 
 [node name="DebugScreen" parent="." unique_id=915455596 instance=ExtResource("3_7jktm")]

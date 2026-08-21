@@ -2,17 +2,29 @@
 
 [ext_resource type="PackedScene" uid="uid://0pvin5qx1r1c" path="res://assets/levels/0/meshes/Pitfall.glb" id="1_wr06j"]
 [ext_resource type="Material" uid="uid://ccfvvvycvfypl" path="res://assets/levels/0/materials/carpet/Carpet016_2K-JPG.tres" id="2_rogj8"]
+[ext_resource type="Script" uid="uid://ctk01noykydv5" path="res://assets/levels/0/scripts/PitfallTrigger.gd" id="3_rogj8"]
 
 [sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_wr06j"]
 data = PackedVector3Array(0.75, 1, 0.75, 0.75, -1, -0.75, 0.75, 1, -0.75, 0.75, 1, 0.75, 0.75, -1, 0.75, 0.75, -1, -0.75, 1, -1, 1, -1, 1, 1, 1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, 1, -1, -1, 1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -0.75, 1, 0.75, 0.75, -1, 0.75, 0.75, 1, 0.75, -0.75, 1, 0.75, -0.75, -1, 0.75, 0.75, -1, 0.75, 1, -1, -1, 1, 1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, 1, 1, 1, -1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -1, 1, 1, -1, -0.75, -1, -0.75, -1, -1, 1, -0.75, -1, 0.75, -0.75, -1, 0.75, -1, -1, 1, 1, -1, 1, -0.75, -1, -0.75, -1, -1, -1, -1, -1, 1, -0.75, -1, 0.75, 1, -1, 1, 0.75, -1, 0.75, 0.75, -1, -0.75, -1, -1, -1, -0.75, -1, -0.75, 0.75, -1, 0.75, 1, -1, 1, 1, -1, -1, 0.75, -1, -0.75, 1, -1, -1, -1, -1, -1, 0.75, -1, 0.75, 1, -1, -1, 0.75, -1, -0.75, 0.75, 1, 0.75, -1, 1, 1, -0.75, 1, 0.75, -0.75, 1, 0.75, -1, 1, 1, -1, 1, -1, 0.75, 1, 0.75, 1, 1, 1, -1, 1, 1, -0.75, 1, 0.75, -1, 1, -1, -0.75, 1, -0.75, 0.75, 1, -0.75, 1, 1, 1, 0.75, 1, 0.75, -0.75, 1, -0.75, -1, 1, -1, 1, 1, -1, 0.75, 1, -0.75, 1, 1, -1, 1, 1, 1, -0.75, 1, -0.75, 1, 1, -1, 0.75, 1, -0.75, 0.75, 1, -0.75, -0.75, -1, -0.75, -0.75, 1, -0.75, 0.75, 1, -0.75, 0.75, -1, -0.75, -0.75, -1, -0.75, -0.75, 1, -0.75, -0.75, -1, 0.75, -0.75, 1, 0.75, -0.75, 1, -0.75, -0.75, -1, -0.75, -0.75, -1, 0.75)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_yfus7"]
+size = Vector3(1.5, 1, 1.5)
+
 [node name="Pitfall" unique_id=1096103097 instance=ExtResource("1_wr06j")]
 
-[node name="Cube" parent="." index="0" unique_id=1295826307]
+[node name="Cube_001" parent="." index="0" unique_id=604179034]
+transform = Transform3D(1, 0, 0, 0, 40, 0, 0, 0, 1, 0, -40.05, 0)
 surface_material_override/0 = ExtResource("2_rogj8")
-
-[node name="StaticBody3D" type="StaticBody3D" parent="Cube" index="0" unique_id=1089746875]
 metadata/material_type = "carpet"
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Cube/StaticBody3D" index="0" unique_id=636357322]
+[node name="StaticBody3D" type="StaticBody3D" parent="Cube_001" index="0" unique_id=566612188]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Cube_001/StaticBody3D" index="0" unique_id=1440993561]
 shape = SubResource("ConcavePolygonShape3D_wr06j")
+
+[node name="PitfallTrigger" type="Area3D" parent="." index="1" unique_id=29634384]
+script = ExtResource("3_rogj8")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PitfallTrigger" index="0" unique_id=1489922737]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -40, 0)
+shape = SubResource("BoxShape3D_yfus7")

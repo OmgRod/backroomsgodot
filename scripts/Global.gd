@@ -43,6 +43,9 @@ var current_sanity: float = 100.0:
 # Ambient sanity drain rate per second
 var base_sanity_drain: float = 0.5
 
+# --- Pitfall Progression System ---
+var pitfall_attempts: int = 0
+
 func _process(delta: float) -> void:
 	# Tick down fall damage trauma delay
 	if trauma_timer > 0.0:
@@ -98,6 +101,32 @@ func drain_sanity(amount: float) -> void:
 func restore_sanity(amount: float) -> void:
 	current_sanity += amount
 
+# --- Pitfall Helper Functions ---
+## Evaluates whether falling into a pitfall transitions to Level 1.
+## Starts at 25% and increases by 25% for each failed fall (25% -> 50% -> 75% -> 100%).
+## Resets back to 0 on success.
+func check_pitfall_noclip() -> bool:
+	pitfall_attempts += 1
+
+	# Guaranteed success on the 4th attempt
+	if pitfall_attempts >= 4:
+		reset_pitfall_attempts()
+		return true
+
+	var chance: float = pitfall_attempts * 0.25
+	var success: bool = randf() <= chance
+
+	if success:
+		print("Pitfall transition success!")
+		reset_pitfall_attempts()
+		return true
+	else:
+		print("Pitfall transition failed! Attempt: %d (Chance was %d%%)" % [pitfall_attempts, int(chance * 100)])
+		return false
+
+func reset_pitfall_attempts() -> void:
+	pitfall_attempts = 0
+
 # --- System Reset ---
 func reset_player_stats() -> void:
 	is_dead = false
@@ -106,3 +135,4 @@ func reset_player_stats() -> void:
 	current_health = max_health
 	current_stamina = max_stamina
 	current_sanity = max_sanity
+	reset_pitfall_attempts()
