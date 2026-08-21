@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://ptdvtjlqtsxb"]
+
+[ext_resource type="Material" uid="uid://1dwfob8letrc" path="res://assets/levels/0/materials/wallpaper/wallpaper.tres" id="1_ulpw6"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_yfus7"]
+lightmap_size_hint = Vector2i(14, 36)
+material = ExtResource("1_ulpw6")
+add_uv2 = true
+size = Vector3(1, 2.5, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ulpw6"]
+size = Vector3(1, 2.5, 1)
+
+[node name="Wall" type="MeshInstance3D" unique_id=736772344]
+lod_bias = 128.0
+mesh = SubResource("BoxMesh_yfus7")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=1261019806]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=1432113760]
+shape = SubResource("BoxShape3D_ulpw6")

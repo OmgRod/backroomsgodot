@@ -1,0 +1,15 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://1dwfob8letrc"]
+
+[ext_resource type="Texture2D" uid="uid://b0m7lc2gph2ys" path="res://assets/levels/0/materials/wallpaper/backrooms-wall-diffuse.png" id="1_22gdf"]
+[ext_resource type="Texture2D" uid="uid://cs6f8n2ia4xa1" path="res://assets/levels/0/materials/wallpaper/backrooms-wall-normal.png" id="1_fdclo"]
+
+[resource]
+albedo_texture = ExtResource("1_22gdf")
+albedo_texture_force_srgb = true
+emission_enabled = true
+emission_energy_multiplier = 0.5
+emission_texture = ExtResource("1_22gdf")
+normal_enabled = true
+normal_texture = ExtResource("1_fdclo")
+uv1_scale = Vector3(2.5, 2.5, 2.5)
+uv1_triplanar = true

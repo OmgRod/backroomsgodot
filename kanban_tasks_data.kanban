@@ -1,0 +1,59 @@
+{
+	"categories": [
+		{
+			"uuid": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"title": "Task",
+			"color": "569eff"
+		}
+	],
+	"stages": [
+		{
+			"uuid": "1322dd1a-e6fc-4cc5-ab2c-e726f57245f2",
+			"title": "Todo",
+			"tasks": [
+				"dda96773-bbe9-49f8-99ea-7b3f234f3017"
+			]
+		},
+		{
+			"uuid": "bb4613ec-7ec8-4df6-88cc-1697ca4fba73",
+			"title": "Doing",
+			"tasks": [
+				"f6b25f20-3f4f-4089-a535-dbc364a52d82"
+			]
+		},
+		{
+			"uuid": "49f49b36-c745-402a-b660-813a3db68206",
+			"title": "Done",
+			"tasks": []
+		}
+	],
+	"tasks": [
+		{
+			"uuid": "f6b25f20-3f4f-4089-a535-dbc364a52d82",
+			"title": "Player Movement",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "dda96773-bbe9-49f8-99ea-7b3f234f3017",
+			"title": "Level 0 Chunk Generation",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		}
+	],
+	"layout": {
+		"columns": [
+			[
+				"1322dd1a-e6fc-4cc5-ab2c-e726f57245f2"
+			],
+			[
+				"bb4613ec-7ec8-4df6-88cc-1697ca4fba73"
+			],
+			[
+				"49f49b36-c745-402a-b660-813a3db68206"
+			]
+		]
+	}
+}

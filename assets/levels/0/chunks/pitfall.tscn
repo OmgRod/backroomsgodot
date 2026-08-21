@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://bmg7ymbaklqnk"]
+
+[ext_resource type="PackedScene" uid="uid://jwdnf7k55wy1" path="res://assets/levels/0/meshes/ceiling.tscn" id="1_3bqjr"]
+[ext_resource type="PackedScene" uid="uid://ce0nnkdnykoao" path="res://assets/levels/0/meshes/pitfall_floor.tscn" id="2_gnep0"]
+
+[node name="Base" type="Node3D" unique_id=1723841691]
+
+[node name="Ceiling" parent="." unique_id=1735951564 instance=ExtResource("1_3bqjr")]
+
+[node name="Pitfall" parent="." unique_id=1096103097 instance=ExtResource("2_gnep0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.3, 0)

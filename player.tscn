@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://ohm0cadryckk"]
+
+[ext_resource type="Script" uid="uid://bu2ikjy84ro80" path="res://scripts/Player.gd" id="1_4flbx"]
+[ext_resource type="AudioStream" uid="uid://d0t0tud0f3ux8" path="res://assets/sounds/impact/footstep_carpet_000.ogg" id="2_2hs0m"]
+[ext_resource type="AudioStream" uid="uid://djltixrtqwand" path="res://assets/sounds/impact/footstep_carpet_001.ogg" id="3_1jxqw"]
+[ext_resource type="AudioStream" uid="uid://cr4n2dmr12o5e" path="res://assets/sounds/impact/footstep_carpet_002.ogg" id="4_dw050"]
+[ext_resource type="AudioStream" uid="uid://cwacfud4y1ab1" path="res://assets/sounds/impact/footstep_carpet_003.ogg" id="5_b26j0"]
+[ext_resource type="AudioStream" uid="uid://bx0gvb4wmex2d" path="res://assets/sounds/impact/footstep_carpet_004.ogg" id="6_n7ghd"]
+[ext_resource type="Shader" uid="uid://cudwinjo03r0o" path="res://assets/shaders/vhs_crt.gdshader" id="7_1jxqw"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_yfus7"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_4flbx"]
+streams_count = 5
+stream_0/stream = ExtResource("2_2hs0m")
+stream_1/stream = ExtResource("3_1jxqw")
+stream_2/stream = ExtResource("4_dw050")
+stream_3/stream = ExtResource("5_b26j0")
+stream_4/stream = ExtResource("6_n7ghd")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2hs0m"]
+shader = ExtResource("7_1jxqw")
+shader_parameter/scanline_count = 300.0
+shader_parameter/scanline_intensity = 0.25
+shader_parameter/chromatic_aberration = 0.003
+shader_parameter/noise_amount = 0.05
+shader_parameter/warp_amount = 0.02
+shader_parameter/vignette_intensity = 0.4
+
+[node name="Player" type="CharacterBody3D" unique_id=630974680]
+script = ExtResource("1_4flbx")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1347610603]
+shape = SubResource("CapsuleShape3D_yfus7")
+
+[node name="Head" type="Node3D" parent="." unique_id=1796599129]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Head" unique_id=2117315968]
+
+[node name="FootstepAudio" type="AudioStreamPlayer3D" parent="Head" unique_id=1736091568]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+stream = SubResource("AudioStreamRandomizer_4flbx")
+unit_size = 2.0
+
+[node name="ShaderOverlay" type="CanvasLayer" parent="Head" unique_id=1334494868]
+layer = 0
+
+[node name="EffectRect" type="ColorRect" parent="Head/ShaderOverlay" unique_id=1016107148]
+material = SubResource("ShaderMaterial_2hs0m")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="FloorDetector" type="RayCast3D" parent="." unique_id=861631247]
+target_position = Vector3(0, -1.5, 0)
+
+[node name="CeilingDetector" type="RayCast3D" parent="." unique_id=1432409483]
+target_position = Vector3(0, 1, 0)

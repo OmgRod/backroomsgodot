@@ -1,0 +1,44 @@
+[gd_scene format=3 uid="uid://cbgugrsyysoph"]
+
+[ext_resource type="Script" uid="uid://cfmd8xv2j6cf1" path="res://assets/levels/0/scripts/ChunkManager.gd" id="2_08q8e"]
+[ext_resource type="AudioStream" uid="uid://ye3f5gntjf7u" path="res://assets/sounds/scary/scary1.wav" id="3_ryq82"]
+[ext_resource type="AudioStream" uid="uid://c1e0kp5b45bwp" path="res://assets/sounds/scary/scary2.wav" id="4_bugp2"]
+[ext_resource type="AudioStream" uid="uid://d1f5xhjdwp1mc" path="res://assets/sounds/scary/scary3.wav" id="5_t2grt"]
+[ext_resource type="AudioStream" uid="uid://btbs40do0fl4p" path="res://assets/sounds/scary/scary4.wav" id="6_3400e"]
+[ext_resource type="AudioStream" uid="uid://bpr2aa4nag544" path="res://assets/sounds/scary/scary5.wav" id="7_dy3b7"]
+[ext_resource type="Script" uid="uid://cq2mu0ihyq0pe" path="res://scripts/ScarySound.gd" id="8_nedi4"]
+[ext_resource type="AudioStream" uid="uid://drpbjy1s0qnql" path="res://assets/levels/0/sounds/fluorescent_lights.mp3" id="8_pcouv"]
+[ext_resource type="Script" uid="uid://dvo3vl1d8qka3" path="res://scripts/LoopSound.gd" id="9_01y0n"]
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_pcouv"]
+streams_count = 5
+stream_0/stream = ExtResource("3_ryq82")
+stream_1/stream = ExtResource("4_bugp2")
+stream_2/stream = ExtResource("5_t2grt")
+stream_3/stream = ExtResource("6_3400e")
+stream_4/stream = ExtResource("7_dy3b7")
+
+[sub_resource type="Environment" id="Environment_01y0n"]
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.3
+volumetric_fog_albedo = Color(0.09451977, 0.09451979, 0, 1)
+volumetric_fog_emission = Color(1, 1, 0, 1)
+volumetric_fog_emission_energy = 0.0
+volumetric_fog_length = 35.0
+
+[node name="Level0" type="Node3D" unique_id=666450966]
+
+[node name="ChunkManager" type="Node3D" parent="." unique_id=791822195]
+script = ExtResource("2_08q8e")
+
+[node name="ScarySounds" type="AudioStreamPlayer3D" parent="." unique_id=449562714]
+stream = SubResource("AudioStreamRandomizer_pcouv")
+script = ExtResource("8_nedi4")
+
+[node name="Ambience" type="AudioStreamPlayer3D" parent="." unique_id=4284779]
+stream = ExtResource("8_pcouv")
+autoplay = true
+script = ExtResource("9_01y0n")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=87486413]
+environment = SubResource("Environment_01y0n")

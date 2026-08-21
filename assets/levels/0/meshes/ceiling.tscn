@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://jwdnf7k55wy1"]
+
+[ext_resource type="Material" uid="uid://bux3w68cbd5kb" path="res://assets/levels/0/materials/ceiling/OfficeCeiling002_2K-JPG.tres" id="1_0ni85"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_65n0w"]
+lightmap_size_hint = Vector2i(12, 12)
+material = ExtResource("1_0ni85")
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_f8dvq"]
+data = PackedVector3Array(1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1, 1, 0, -1)
+
+[node name="Ceiling" type="Node3D" unique_id=1735951564]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=54538743]
+transform = Transform3D(1, 0, 0, 0, -1, 8.742278e-08, 0, -8.742278e-08, -1, 0, 2.5, 0)
+mesh = SubResource("PlaneMesh_65n0w")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="MeshInstance3D" unique_id=1736967997]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D/StaticBody3D" unique_id=822571688]
+shape = SubResource("ConcavePolygonShape3D_f8dvq")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="MeshInstance3D" unique_id=992166325]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+light_color = Color(1, 1, 0.8627451, 1)
+light_energy = 0.4
+shadow_enabled = true

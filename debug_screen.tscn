@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://dvyjgy1jaboyx"]
+
+[ext_resource type="Script" uid="uid://c30b45ko3iqyx" path="res://scripts/CoordinateLabel.gd" id="1_37p78"]
+[ext_resource type="FontFile" uid="uid://bna4ecgcvxv88" path="res://assets/fonts/VCR_OSD_MONO_1.001.ttf" id="1_64ctp"]
+[ext_resource type="Script" uid="uid://bsnig4gq2mn74" path="res://scripts/StaminaLevel.gd" id="2_8sq4i"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_37p78"]
+font = ExtResource("1_64ctp")
+outline_size = 10
+outline_color = Color(0, 0, 0, 1)
+
+[node name="DebugScreen" type="Control" unique_id=915455596]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="StaminaLabel" type="Label" parent="." unique_id=720509870]
+layout_mode = 0
+offset_left = 15.0
+offset_top = 45.0
+offset_right = 109.0
+offset_bottom = 68.0
+text = "Stamina: --%"
+label_settings = SubResource("LabelSettings_37p78")
+script = ExtResource("2_8sq4i")
+
+[node name="CoordinateLabel" type="Label" parent="." unique_id=382233382]
+layout_mode = 0
+offset_left = 15.0
+offset_top = 15.0
+offset_right = 55.0
+offset_bottom = 38.0
+text = "--, --, --"
+label_settings = SubResource("LabelSettings_37p78")
+script = ExtResource("1_37p78")

@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://chrrwsluvokce"]
+
+[ext_resource type="PackedScene" uid="uid://cbgugrsyysoph" path="res://assets/levels/0/level_0.tscn" id="1_feb5d"]
+[ext_resource type="PackedScene" uid="uid://ohm0cadryckk" path="res://player.tscn" id="2_fc0e3"]
+[ext_resource type="PackedScene" uid="uid://dvyjgy1jaboyx" path="res://debug_screen.tscn" id="3_7jktm"]
+
+[node name="Game" type="Node3D" unique_id=1648927474]
+
+[node name="Level0" parent="." unique_id=666450966 instance=ExtResource("1_feb5d")]
+
+[node name="Player" parent="Level0" unique_id=630974680 instance=ExtResource("2_fc0e3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1001196, 0)
+
+[node name="DebugScreen" parent="." unique_id=915455596 instance=ExtResource("3_7jktm")]
