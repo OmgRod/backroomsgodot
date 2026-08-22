@@ -12,6 +12,9 @@ const MOUSE_SENSITIVITY = 0.0025
 const TOUCH_SENSITIVITY = 0.003
 const JUMP_VELOCITY = 3.0
 
+# Pitfall fall boundary fail-safe
+const FALL_DEATH_Y_THRESHOLD: float = -6.0
+
 # Crouching Settings
 const STAND_HEAD_HEIGHT = 1.6
 const CROUCH_HEAD_HEIGHT = 0.8
@@ -20,24 +23,24 @@ const CROUCH_CAPSULE_HEIGHT = 1.0
 const CROUCH_LERP_SPEED = 10.0
 
 # Dynamic FOV Configuration
-const BASE_FOV = 75.0
-const MAX_FOV = 95.0
-const FOV_SPEED_SCALE = 0.5
+const BASE_FOV = 72.0
+const MAX_FOV = 82.0
+const FOV_SPEED_SCALE = 0.3
 const FOV_LERP_SPEED = 6.0
 
 # Dynamic Head Bob / Camera Shake Settings
-const BOB_WALK_FREQ = 12.0
-const BOB_SPRINT_FREQ = 16.0
-const BOB_CROUCH_FREQ = 8.0
+const BOB_WALK_FREQ = 10.0
+const BOB_SPRINT_FREQ = 14.0
+const BOB_CROUCH_FREQ = 7.0
 
-const BOB_WALK_AMP = Vector2(0.02, 0.035)
-const BOB_SPRINT_AMP = Vector2(0.04, 0.06)
-const BOB_CROUCH_AMP = Vector2(0.01, 0.015)
+const BOB_WALK_AMP = Vector2(0.015, 0.025)
+const BOB_SPRINT_AMP = Vector2(0.025, 0.04)
+const BOB_CROUCH_AMP = Vector2(0.008, 0.01)
 
 const BOB_LERP_SPEED = 10.0
 var bob_timer: float = 0.0
 
-# Tuned Stamina Rates (Units per second)
+# Tuned Stamina Rates
 const STAMINA_DRAIN_RATE = 10.0
 const STAMINA_WALK_REGEN = 12.0
 const STAMINA_IDLE_REGEN = 25.0
@@ -72,10 +75,11 @@ var touch_look_finger_id: int = -1
 # Gravity
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
-func _ready() -> void:
+func _enter_tree() -> void:
 	if not is_in_group("player"):
 		add_to_group("player")
 
+func _ready() -> void:
 	if not OS.has_feature("mobile") and not DisplayServer.is_touchscreen_available():
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	else:
@@ -87,10 +91,20 @@ func _ready() -> void:
 		collision_shape.shape = collision_shape.shape.duplicate()
 
 	get_tree().create_timer(0.3).timeout.connect(func(): is_frozen = false)
+
+	if Global.has_signal("player_died"):
+		Global.player_died.connect(_on_player_died)
+
 	register_console_commands()
 
+func get_camera_forward() -> Vector3:
+	return -camera.global_transform.basis.z
+
+func get_camera_position() -> Vector3:
+	return camera.global_position
+
 func _unhandled_input(event: InputEvent) -> void:
-	if is_frozen:
+	if is_frozen or (Global and Global.is_dead):
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -122,7 +136,6 @@ func handle_interaction() -> void:
 	if not collider:
 		return
 
-	# Search up the node hierarchy to find the Door scene root
 	var target = collider
 	while target and not target.has_method("interact"):
 		target = target.get_parent()
@@ -152,12 +165,19 @@ func rotate_camera(relative_delta: Vector2) -> void:
 	camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-89), deg_to_rad(89))
 
 func _physics_process(delta: float) -> void:
-	if is_frozen:
-		velocity = Vector3.ZERO
-		return
+	# Fall boundary safety trigger
+	if global_position.y < FALL_DEATH_Y_THRESHOLD and Global and not Global.is_dead:
+		Global.trigger_death_sequence("pitfall")
 
+	# Continue gravity physics while dead so falling animation completes smoothly
 	if not is_on_floor():
 		velocity.y -= gravity * delta
+
+	if is_frozen or (Global and Global.is_dead):
+		velocity.x = 0.0
+		velocity.z = 0.0
+		move_and_slide()
+		return
 
 	if Input.is_action_pressed("jump") and is_on_floor() and not is_crouching:
 		velocity.y = JUMP_VELOCITY
@@ -194,20 +214,20 @@ func handle_stamina_and_speed(delta: float, direction: Vector3) -> float:
 
 	if is_crouching:
 		is_sprinting = false
-		Global.regen_stamina(STAMINA_WALK_REGEN * delta)
+		if Global.has_method("regen_stamina"): Global.regen_stamina(STAMINA_WALK_REGEN * delta)
 		return CROUCH_SPEED
 
-	if wants_to_sprint and not Global.is_exhausted:
-		var drained = Global.use_stamina(STAMINA_DRAIN_RATE * delta)
+	if wants_to_sprint and not (Global.has_method("is_exhausted") and Global.is_exhausted):
+		var drained = Global.has_method("use_stamina") and Global.use_stamina(STAMINA_DRAIN_RATE * delta)
 		if drained:
 			is_sprinting = true
 			return SPRINT_SPEED
 
 	is_sprinting = false
 	if direction == Vector3.ZERO:
-		Global.regen_stamina(STAMINA_IDLE_REGEN * delta)
+		if Global.has_method("regen_stamina"): Global.regen_stamina(STAMINA_IDLE_REGEN * delta)
 	else:
-		Global.regen_stamina(STAMINA_WALK_REGEN * delta)
+		if Global.has_method("regen_stamina"): Global.regen_stamina(STAMINA_WALK_REGEN * delta)
 
 	return WALK_SPEED
 
@@ -228,7 +248,7 @@ func handle_camera_fov(delta: float) -> void:
 
 	var speed_factor = (horizontal_speed - WALK_SPEED) / WALK_SPEED
 	var target_fov = BASE_FOV + (speed_factor * BASE_FOV * FOV_SPEED_SCALE)
-	target_fov = clamp(target_fov, BASE_FOV - 5.0, MAX_FOV)
+	target_fov = clamp(target_fov, BASE_FOV - 2.0, MAX_FOV)
 
 	camera.fov = lerp(camera.fov, target_fov, FOV_LERP_SPEED * delta)
 
@@ -307,14 +327,18 @@ func check_and_play_surface_sound() -> void:
 
 	footstep_audio.play()
 
+func _on_player_died() -> void:
+	var tween = create_tween()
+	tween.tween_property(camera, "rotation:z", deg_to_rad(30.0), 1.0)
+
+	await get_tree().create_timer(2.5).timeout
+	camera.rotation.z = 0.0
+
 func _exit_tree() -> void:
 	var console_node = get_node_or_null("/root/Console")
 	if console_node and console_node.has_method("remove_command"):
 		console_node.remove_command("tp")
 
-# ==========================================
-# CONSOLE COMMAND SYSTEM
-# ==========================================
 func register_console_commands() -> void:
 	var console_node = get_node_or_null("/root/Console")
 	if console_node:

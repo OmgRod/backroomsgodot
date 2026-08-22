@@ -1,6 +1,6 @@
 extends CanvasLayer
 
-@onready var shader_rect: ColorRect = $ColorRect # Adjust path to your full-screen ColorRect node
+@onready var shader_rect: ColorRect = $EffectRect # Adjust path to your full-screen ColorRect node
 
 func _ready() -> void:
 	register_console_commands()
