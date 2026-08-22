@@ -1,46 +1,38 @@
-name: Compile Godot Game
+name: Godot CI Exports
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  push: {}
+  pull_request: {}
 
 jobs:
   export-game:
-    name: Export Game for Linux, Windows, and macOS
     runs-on: ubuntu-latest
-    
     container:
-      image: barichello/godot-ci:4.3-stable
-
+      image: barichello/godot-ci:4.3.2-stable
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
-      - name: Create Build Output Directories
+      - name: Setup Export Templates
         run: |
-          mkdir -p build/linux
-          mkdir -p build/windows
-          mkdir -p build/macos
+          mkdir -p ~/.local/share/godot/export_templates
+          mv /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/ || true
 
-      - name: Export Game Binaries
+      - name: Build Project
         run: |
-          echo "Starting Godot export process..."
+          mkdir -p build/linux build/windows build/macos
           
-          # Preset names match your export_presets.cfg exactly:
-          # "Linux", "Windows Desktop", and "macOS"
-          
+          # Preset names must match your export_presets.cfg exactly
           godot --headless --verbose --export-release "Linux" build/linux/Backrooms.x86_64
           godot --headless --verbose --export-release "Windows Desktop" build/windows/Backrooms.exe
           godot --headless --verbose --export-release "macOS" build/macos/Backrooms.zip
-          
-          echo "Export completed successfully!"
 
-      - name: Upload Game Builds
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Backrooms-Game-Builds
+          name: Backrooms-Builds
           path: |
             build/linux/
             build/windows/
