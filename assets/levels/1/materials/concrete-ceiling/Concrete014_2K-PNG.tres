@@ -1,0 +1,18 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://dtk5crvkjyffs"]
+
+[ext_resource type="Texture2D" uid="uid://cnfu8dj31j715" path="res://assets/levels/1/materials/concrete-ceiling/Concrete014_2K-PNG_Color.png" id="Color"]
+[ext_resource type="Texture2D" uid="uid://4gmw8yp6cycq" path="res://assets/levels/1/materials/concrete-ceiling/Concrete014_2K-PNG_Displacement.png" id="Displacement"]
+[ext_resource type="Texture2D" uid="uid://d2gh8jqgqj1wq" path="res://assets/levels/1/materials/concrete-ceiling/Concrete014_2K-PNG_NormalGL.png" id="NormalGL"]
+[ext_resource type="Texture2D" uid="uid://bx14ux2irv304" path="res://assets/levels/1/materials/concrete-ceiling/Concrete014_2K-PNG_Roughness.png" id="Roughness"]
+
+[resource]
+albedo_texture = ExtResource("Color")
+roughness_texture = ExtResource("Roughness")
+roughness_texture_channel = 4
+normal_enabled = true
+normal_texture = ExtResource("NormalGL")
+heightmap_enabled = true
+heightmap_scale = 1.0
+heightmap_texture = ExtResource("Displacement")
+uv1_triplanar = true
+uv1_world_triplanar = true

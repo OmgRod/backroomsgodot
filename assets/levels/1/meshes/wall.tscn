@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://bs452factbahd"]
+
+[ext_resource type="Material" uid="uid://bepn6ah13amc" path="res://assets/levels/1/materials/concrete-walls/Concrete008_2K-PNG.tres" id="1_vrv6m"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_yfus7"]
+lightmap_size_hint = Vector2i(14, 56)
+material = ExtResource("1_vrv6m")
+add_uv2 = true
+size = Vector3(1, 4.5, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ulpw6"]
+size = Vector3(1, 2.5, 1)
+
+[node name="Wall" type="MeshInstance3D" unique_id=736772344]
+lod_bias = 128.0
+mesh = SubResource("BoxMesh_yfus7")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=1261019806]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=1432113760]
+shape = SubResource("BoxShape3D_ulpw6")

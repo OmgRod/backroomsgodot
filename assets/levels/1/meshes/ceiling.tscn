@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://pmeq1a84eff3"]
+
+[ext_resource type="Material" uid="uid://dtk5crvkjyffs" path="res://assets/levels/1/materials/concrete-ceiling/Concrete014_2K-PNG.tres" id="1_htaea"]
+[ext_resource type="PackedScene" uid="uid://gqlrjdhjl8oj" path="res://assets/levels/1/meshes/light/worn_overlead_light.glb" id="2_tkrys"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_65n0w"]
+lightmap_size_hint = Vector2i(12, 12)
+material = ExtResource("1_htaea")
+size = Vector2(12, 12)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_cqvyp"]
+data = PackedVector3Array(6, 0, 6, -6, 0, 6, 6, 0, -6, -6, 0, 6, -6, 0, -6, 6, 0, -6)
+
+[node name="Ceiling" type="Node3D" unique_id=1735951564]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=54538743]
+transform = Transform3D(1, 0, 0, 0, -1, 8.742278e-08, 0, -8.742278e-08, -1, 0, 4, 0)
+mesh = SubResource("PlaneMesh_65n0w")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="MeshInstance3D" unique_id=1474128572]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D/StaticBody3D" unique_id=2011455480]
+shape = SubResource("ConcavePolygonShape3D_cqvyp")
+
+[node name="Light" parent="." unique_id=403179638 instance=ExtResource("2_tkrys")]
+transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 3, 0)
+
+[node name="SpotLight3D" type="SpotLight3D" parent="Light" unique_id=1698925878]
+transform = Transform3D(20, 0, 0, 0, -8.7422785e-07, 20.000002, 0, -20.000002, -8.7422785e-07, 0, 0, 0)
+
+[node name="Light2" parent="." unique_id=848499772 instance=ExtResource("2_tkrys")]
+transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, -3.5, 3, 0)
+
+[node name="SpotLight3D" type="SpotLight3D" parent="Light2" unique_id=2025975420]
+transform = Transform3D(20, 0, 0, 0, -8.7422785e-07, 20.000002, 0, -20.000002, -8.7422785e-07, 0, 0, 0)
+
+[node name="Light3" parent="." unique_id=512984038 instance=ExtResource("2_tkrys")]
+transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 3.5, 3, 0)
+
+[node name="SpotLight3D" type="SpotLight3D" parent="Light3" unique_id=1959330312]
+transform = Transform3D(20, 0, 0, 0, -8.7422785e-07, 20.000002, 0, -20.000002, -8.7422785e-07, 0, 0, 0)

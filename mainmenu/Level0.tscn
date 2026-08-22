@@ -1,11 +1,10 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://clbeelwqi0oed"]
 
-[ext_resource type="Script" path="res://assets/levels/0/scripts/ChunkManager.gd" id="1_bgre8"]
-[ext_resource type="PackedScene" path="res://assets/levels/0/chunks/base.tscn" id="2_wrswv"]
-[ext_resource type="PackedScene" path="res://assets/levels/0/meshes/wall.tscn" id="3_eilmp"]
-[ext_resource type="Material" path="res://assets/levels/0/materials/wallpaper/wallpaper.tres" id="4_p14hn"]
-[ext_resource type="PackedScene" path="res://assets/levels/0/chunks/pitfall.tscn" id="5_gf271"]
-[ext_resource type="PackedScene" path="res://assets/levels/0/meshes/tile_floor.tscn" id="6_hljwi"]
+[ext_resource type="PackedScene" uid="uid://8i31jc6x4tij" path="res://assets/levels/0/chunks/base.tscn" id="2_wrswv"]
+[ext_resource type="PackedScene" uid="uid://ptdvtjlqtsxb" path="res://assets/levels/0/meshes/wall.tscn" id="3_eilmp"]
+[ext_resource type="Material" uid="uid://1dwfob8letrc" path="res://assets/levels/0/materials/wallpaper/wallpaper.tres" id="4_p14hn"]
+[ext_resource type="PackedScene" uid="uid://bmg7ymbaklqnk" path="res://assets/levels/0/chunks/pitfall.tscn" id="5_gf271"]
+[ext_resource type="PackedScene" uid="uid://drcsrt3l5hnw" path="res://assets/levels/0/meshes/tile_floor.tscn" id="6_hljwi"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_82bk0"]
 lightmap_size_hint = Vector2i(12, 36)
@@ -4507,9 +4506,7 @@ material = ExtResource("4_p14hn")
 add_uv2 = true
 size = Vector3(2, 2.5, 0.25)
 
-[node name="ChunkManager" type="Node3D" unique_id=1108651685 node_paths=PackedStringArray("player")]
-script = ExtResource("1_bgre8")
-player = NodePath("")
+[node name="ChunkManager" type="Node3D" unique_id=1108651685]
 
 [node name="Base" parent="." unique_id=1723841691 instance=ExtResource("2_wrswv")]
 

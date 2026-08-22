@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://b6c5iwq3xw7p0"]
+
+[ext_resource type="PackedScene" uid="uid://pmeq1a84eff3" path="res://assets/levels/1/meshes/ceiling.tscn" id="1_65q36"]
+[ext_resource type="PackedScene" uid="uid://yssbwffnm1sv" path="res://assets/levels/1/meshes/tile_floor.tscn" id="2_udqkm"]
+
+[node name="Base" type="Node3D" unique_id=1723841691]
+
+[node name="Ceiling" parent="." unique_id=1735951564 instance=ExtResource("1_65q36")]
+
+[node name="Tile_Floor" parent="." unique_id=1029675114 instance=ExtResource("2_udqkm")]

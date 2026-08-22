@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cbgugrsyysoph"]
 
-[ext_resource type="Script" uid="uid://cfmd8xv2j6cf1" path="res://assets/levels/0/scripts/ChunkManager.gd" id="2_08q8e"]
+[ext_resource type="Script" uid="uid://cfmd8xv2j6cf1" path="res://assets/levels/0/scripts/Level0ChunkManager.gd" id="2_08q8e"]
 [ext_resource type="AudioStream" uid="uid://ye3f5gntjf7u" path="res://assets/sounds/scary/scary1.wav" id="3_ryq82"]
 [ext_resource type="AudioStream" uid="uid://c1e0kp5b45bwp" path="res://assets/sounds/scary/scary2.wav" id="4_bugp2"]
 [ext_resource type="AudioStream" uid="uid://d1f5xhjdwp1mc" path="res://assets/sounds/scary/scary3.wav" id="5_t2grt"]
@@ -28,7 +28,7 @@ volumetric_fog_length = 35.0
 
 [node name="Level0" type="Node3D" unique_id=666450966]
 
-[node name="ChunkManager" type="Node3D" parent="." unique_id=791822195]
+[node name="ChunkManager" type="Node3D" parent="." unique_id=819542366]
 script = ExtResource("2_08q8e")
 
 [node name="ScarySounds" type="AudioStreamPlayer3D" parent="." unique_id=449562714]

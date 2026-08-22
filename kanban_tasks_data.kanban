@@ -11,20 +11,39 @@
 			"uuid": "1322dd1a-e6fc-4cc5-ab2c-e726f57245f2",
 			"title": "Todo",
 			"tasks": [
-				"dda96773-bbe9-49f8-99ea-7b3f234f3017"
+				"30b48520-284f-4b70-bbff-9b3206b3437e",
+				"543d8900-58e1-4434-a48c-539131d7d22f",
+				"e4b2a1e2-3119-4d7a-830e-4ccd65919912",
+				"abf636d3-d51b-4743-bc05-6073fa3534f6",
+				"38f6cfd5-720c-42fb-ba2e-f68bba31dd68",
+				"88008586-7bd7-40dc-92a9-a91b930a926a",
+				"4fc01ad8-acf1-451d-a696-09c3ec16ad84",
+				"109674ea-6d33-49dc-a2ca-1bd8ae2493ad",
+				"e5b43538-614f-4386-af5b-220e80e98a79",
+				"0fbe68e3-731b-4d60-b608-34eed08b7784",
+				"b5dc0cb5-b5d3-4a80-aad1-c7415524e512",
+				"f73dd955-b7b8-4d64-88d1-c8779b92702a"
 			]
 		},
 		{
 			"uuid": "bb4613ec-7ec8-4df6-88cc-1697ca4fba73",
 			"title": "Doing",
 			"tasks": [
-				"f6b25f20-3f4f-4089-a535-dbc364a52d82"
+				"63eb859f-de28-4fbb-988c-d2144c054fed",
+				"1d0e3c83-cd12-46e2-af1e-5b6bb31bc062",
+				"137d65da-43cd-4fba-bad9-029feda1bc70",
+				"0ce3f308-cbd2-4ab9-89b5-411ff30cee05"
 			]
 		},
 		{
 			"uuid": "49f49b36-c745-402a-b660-813a3db68206",
 			"title": "Done",
-			"tasks": []
+			"tasks": [
+				"dda96773-bbe9-49f8-99ea-7b3f234f3017",
+				"f6b25f20-3f4f-4089-a535-dbc364a52d82",
+				"60e3f31a-f4be-4cee-9c21-f53853061143",
+				"e1054de6-10aa-41a2-9965-ba833d447365"
+			]
 		}
 	],
 	"tasks": [
@@ -38,6 +57,132 @@
 		{
 			"uuid": "dda96773-bbe9-49f8-99ea-7b3f234f3017",
 			"title": "Level 0 Chunk Generation",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "1d0e3c83-cd12-46e2-af1e-5b6bb31bc062",
+			"title": "Arch Rooms (Level 0)",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "60e3f31a-f4be-4cee-9c21-f53853061143",
+			"title": "Manila Room",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "63eb859f-de28-4fbb-988c-d2144c054fed",
+			"title": "Level 1 Furniture",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "30b48520-284f-4b70-bbff-9b3206b3437e",
+			"title": "Red rooms",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "e1054de6-10aa-41a2-9965-ba833d447365",
+			"title": "Layout Changes",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "543d8900-58e1-4434-a48c-539131d7d22f",
+			"title": "Zenith Station",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "e4b2a1e2-3119-4d7a-830e-4ccd65919912",
+			"title": "Remodeled Mess",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "abf636d3-d51b-4743-bc05-6073fa3534f6",
+			"title": "The Icy Rooms",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "38f6cfd5-720c-42fb-ba2e-f68bba31dd68",
+			"title": "Aquaclaustrophobic Infirmary",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "88008586-7bd7-40dc-92a9-a91b930a926a",
+			"title": "The Reminiscence District",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "4fc01ad8-acf1-451d-a696-09c3ec16ad84",
+			"title": "The Torment",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "109674ea-6d33-49dc-a2ca-1bd8ae2493ad",
+			"title": "Corrupted Corridor",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "e5b43538-614f-4386-af5b-220e80e98a79",
+			"title": "Malignance",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "0fbe68e3-731b-4d60-b608-34eed08b7784",
+			"title": "Inverted",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "b5dc0cb5-b5d3-4a80-aad1-c7415524e512",
+			"title": "Base Alpha",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "f73dd955-b7b8-4d64-88d1-c8779b92702a",
+			"title": "Traders Vault",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "137d65da-43cd-4fba-bad9-029feda1bc70",
+			"title": "Fix Level 1 transition bug",
+			"description": "",
+			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
+			"steps": []
+		},
+		{
+			"uuid": "0ce3f308-cbd2-4ab9-89b5-411ff30cee05",
+			"title": "Fix flickering wall not flickering",
 			"description": "",
 			"category": "1d5c2adf-b1a2-406a-b75c-bc630f11cc1f",
 			"steps": []

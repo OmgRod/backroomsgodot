@@ -111,6 +111,7 @@ render_target_update_mode = 4
 environment = SubResource("Environment_cp1kl")
 
 [node name="ChunkManager" parent="SubViewportContainer/SubViewport" unique_id=296580678 instance=ExtResource("1_06t4h")]
+script = null
 
 [node name="Cameras" type="Node3D" parent="SubViewportContainer/SubViewport" unique_id=1271528673]
 script = ExtResource("2_7vrkn")
