@@ -45,7 +45,7 @@ version_control/autoload_on_startup=true
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/GDQuest_GDScript_formatter/plugin.cfg", "res://addons/StyleboxFancy/plugin.cfg", "res://addons/anthonyec.camera_preview/plugin.cfg", "res://addons/at-icons/plugin.cfg", "res://addons/console/plugin.cfg", "res://addons/curved_lines_2d/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/godotsteam/plugin.cfg", "res://addons/kanban_tasks/plugin.cfg", "res://addons/markdownlabel/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/rider-plugin/plugin.cfg", "res://addons/script-ide/plugin.cfg", "res://addons/yard/plugin.cfg")
+enabled=PackedStringArray("res://addons/GDQuest_GDScript_formatter/plugin.cfg", "res://addons/StyleboxFancy/plugin.cfg", "res://addons/anthonyec.camera_preview/plugin.cfg", "res://addons/console/plugin.cfg", "res://addons/curved_lines_2d/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/godotsteam/plugin.cfg", "res://addons/kanban_tasks/plugin.cfg", "res://addons/markdownlabel/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/rider-plugin/plugin.cfg", "res://addons/script-ide/plugin.cfg", "res://addons/yard/plugin.cfg")
 
 [input]
 
@@ -83,6 +83,11 @@ crouch={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194326,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
 , Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":67,"key_label":0,"unicode":99,"location":0,"echo":false,"script":null)
+]
+}
+interact={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":69,"key_label":0,"unicode":101,"location":0,"echo":false,"script":null)
 ]
 }
 

@@ -9,11 +9,16 @@ extends Node3D
 
 # Grid Configuration (3D CHUNKS)
 const CHUNK_SIZE: float = 2.0         # 2x2m horizontal base chunk size
-const CHUNK_HEIGHT: float = 82.5       # 5m vertical chunk height
+const CHUNK_HEIGHT: float = 82.5       # Vertical chunk height layer separation
 const RENDER_DISTANCE: int = 14       # Radius of loaded chunks
 const VERTICAL_RENDER_DISTANCE: int = 1 # Layers above/below to render
 const LOD_0_DIST: int = 6             # Chunks within this radius calculate physics collision
 const WALL_HEIGHT: float = 2.5        # Ceiling height
+
+# Darkening & Audio Diminishing Parameters
+# How fast light drops per Y level down (0.25 = total darkness by Y = -4)
+const DARKNESS_FACTOR: float = 0.25
+const BASE_LIGHT_ENERGY: float = 1.0   # Default OmniLight3D energy at Y = 0
 
 # Variable Wall Thicknesses
 const THIN_WALL: float = 0.25         # Office partition drywall
@@ -32,6 +37,9 @@ var wall_layout_noise: FastNoiseLite
 # State Tracking
 var loaded_chunks: Dictionary = {}
 var last_player_chunk: Vector3i = Vector3i(99999, 99999, 99999)
+
+# Ambient Audio Reference
+@onready var ambience_audio: AudioStreamPlayer = get_node_or_null("../Ambience") as AudioStreamPlayer
 
 enum SectorType {
 	CLASSIC_MIX,      # Organic Backrooms maze
@@ -86,8 +94,25 @@ func _process(_delta: float) -> void:
 		last_player_chunk = current_chunk
 		update_chunks()
 
+	# Dynamically adjust ambient audio volume based on current depth level
+	_update_ambient_audio(current_chunk.y)
+
 	if "is_frozen" in player and player.is_frozen:
 		player.is_frozen = false
+
+func _update_ambient_audio(player_y: int) -> void:
+	if not is_instance_valid(ambience_audio):
+		ambience_audio = get_node_or_null("../Ambience") as AudioStreamPlayer
+		if not is_instance_valid(ambience_audio):
+			return
+
+	# Calculate volume ratio identical to light energy ratio (0.0 to 1.0)
+	var light_ratio: float = maxf(0.0, 1.0 + (float(player_y) * DARKNESS_FACTOR))
+
+	if light_ratio <= 0.0:
+		ambience_audio.volume_db = -80.0 # Silent
+	else:
+		ambience_audio.volume_db = linear_to_db(light_ratio)
 
 func update_chunks() -> void:
 	var player_chunk := last_player_chunk
@@ -159,9 +184,8 @@ func raw_manila_check(sector_x: int, layer_y: int, sector_z: int) -> bool:
 		return false
 
 	var hash_val = get_3d_hash(sector_x, layer_y, sector_z, MANILA_SALT)
-	return hash_val <= 0.008
+	return hash_val <= 0.005 # Rare Manila Room spawn threshold
 
-# Check for the entire 6x6 area (Outer corridor + Inner room)
 func is_in_manila_6x6_zone(coords_2d: Vector2i, layer_y: int) -> bool:
 	if layer_y != 0:
 		return false
@@ -178,7 +202,6 @@ func is_in_manila_6x6_zone(coords_2d: Vector2i, layer_y: int) -> bool:
 	return coords_2d.x >= outer_start_x and coords_2d.x < outer_start_x + 6 \
 			and coords_2d.y >= outer_start_z and coords_2d.y < outer_start_z + 6
 
-# Check for the inner 4x4 area occupied by manila_room.tscn
 func is_in_manila_inner_4x4_zone(coords_2d: Vector2i, layer_y: int) -> bool:
 	if layer_y != 0:
 		return false
@@ -195,7 +218,6 @@ func is_in_manila_inner_4x4_zone(coords_2d: Vector2i, layer_y: int) -> bool:
 	return coords_2d.x >= inner_start_x and coords_2d.x < inner_start_x + 4 \
 			and coords_2d.y >= inner_start_z and coords_2d.y < inner_start_z + 4
 
-# Check for the top-left anchor chunk (2,2) of the inner 4x4 room
 func is_manila_anchor_chunk(coords_2d: Vector2i, layer_y: int) -> bool:
 	if layer_y != 0:
 		return false
@@ -247,11 +269,19 @@ func spawn_chunk(coords: Vector3i, enable_collision: bool) -> void:
 	var world_z = coords.z * CHUNK_SIZE
 	instance.global_position = Vector3(world_x, world_y, world_z)
 
-	# Generate random walls ONLY for standard chunks outside the entire 6x6 Manila area
 	if not is_pitfall and not is_pitfall_drop_landing and not is_manila_6x6:
 		generate_backrooms_geometry(instance, coords, enable_collision)
 
+	# Apply light scaling based on depth
+	_apply_chunk_light_scaling(instance, coords.y)
+
 	loaded_chunks[coords] = instance
+
+func _apply_chunk_light_scaling(chunk_instance: Node3D, y_level: int) -> void:
+	var light_node = chunk_instance.get_node_or_null("Base/Ceiling/MeshInstance3D/OmniLight3D") as OmniLight3D
+	if light_node:
+		var light_ratio: float = maxf(0.0, 1.0 + (float(y_level) * DARKNESS_FACTOR))
+		light_node.light_energy = BASE_LIGHT_ENERGY * light_ratio
 
 func update_chunk_collision_state(chunk_node: Node3D, enable_collision: bool) -> void:
 	var col_shapes = chunk_node.find_children("*", "CollisionShape3D", true, false)
@@ -423,15 +453,15 @@ func _locate_nearest_pitfall(console_node: Node) -> void:
 	var current_sector_x = floori((start_pos.x / CHUNK_SIZE) / float(SECTOR_SIZE_CHUNKS))
 	var current_sector_z = floori((start_pos.z / CHUNK_SIZE) / float(SECTOR_SIZE_CHUNKS))
 
-	var nearest_pitfall_center := Vector3.ZERO
+	var nearest_pitfall_pos := Vector3.ZERO
 	var shortest_dist_sq := INF
-	var search_radius := 25
+	var search_radius := 40
 
 	for sx in range(current_sector_x - search_radius, current_sector_x + search_radius + 1):
 		for sz in range(current_sector_z - search_radius, current_sector_z + search_radius + 1):
 			if raw_pitfall_check(sx, current_layer_y, sz):
-				var center_chunk_x = (sx * SECTOR_SIZE_CHUNKS) + 3
-				var center_chunk_z = (sz * SECTOR_SIZE_CHUNKS) + 3
+				var center_chunk_x = (sx * SECTOR_SIZE_CHUNKS) + 3.5
+				var center_chunk_z = (sz * SECTOR_SIZE_CHUNKS) + 3.5
 
 				var pitfall_world_pos = Vector3(
 						center_chunk_x * CHUNK_SIZE,
@@ -442,15 +472,15 @@ func _locate_nearest_pitfall(console_node: Node) -> void:
 				var dist_sq = start_pos.distance_squared_to(pitfall_world_pos)
 				if dist_sq < shortest_dist_sq:
 					shortest_dist_sq = dist_sq
-					nearest_pitfall_center = pitfall_world_pos
+					nearest_pitfall_pos = pitfall_world_pos
 
 	if shortest_dist_sq != INF:
 		var distance = sqrt(shortest_dist_sq)
 		console_node.print_line(
 				"Nearest pitfall found at: (X: %.1f, Y: %.1f, Z: %.1f) [~%.1fm away]" % [
-					nearest_pitfall_center.x,
-					nearest_pitfall_center.y,
-					nearest_pitfall_center.z,
+					nearest_pitfall_pos.x,
+					nearest_pitfall_pos.y,
+					nearest_pitfall_pos.z,
 					distance
 				]
 		)
@@ -463,15 +493,15 @@ func _locate_nearest_manila(console_node: Node) -> void:
 	var current_sector_x = floori((start_pos.x / CHUNK_SIZE) / float(SECTOR_SIZE_CHUNKS))
 	var current_sector_z = floori((start_pos.z / CHUNK_SIZE) / float(SECTOR_SIZE_CHUNKS))
 
-	var nearest_manila_center := Vector3.ZERO
+	var nearest_manila_pos := Vector3.ZERO
 	var shortest_dist_sq := INF
-	var search_radius := 60
+	var search_radius := 150
 
 	for sx in range(current_sector_x - search_radius, current_sector_x + search_radius + 1):
 		for sz in range(current_sector_z - search_radius, current_sector_z + search_radius + 1):
 			if raw_manila_check(sx, 0, sz):
-				var center_chunk_x = (sx * SECTOR_SIZE_CHUNKS) + 4
-				var center_chunk_z = (sz * SECTOR_SIZE_CHUNKS) + 4
+				var center_chunk_x = (sx * SECTOR_SIZE_CHUNKS) + 4.0
+				var center_chunk_z = (sz * SECTOR_SIZE_CHUNKS) + 4.0
 
 				var manila_world_pos = Vector3(
 						center_chunk_x * CHUNK_SIZE,
@@ -482,14 +512,14 @@ func _locate_nearest_manila(console_node: Node) -> void:
 				var dist_sq = start_pos.distance_squared_to(manila_world_pos)
 				if dist_sq < shortest_dist_sq:
 					shortest_dist_sq = dist_sq
-					nearest_manila_center = manila_world_pos
+					nearest_manila_pos = manila_world_pos
 
 	if shortest_dist_sq != INF:
 		var distance = sqrt(shortest_dist_sq)
 		console_node.print_line(
 				"Nearest Manila Room found at: (X: %.1f, Y: 0.0, Z: %.1f) [~%.1fm away]" % [
-					nearest_manila_center.x,
-					nearest_manila_center.z,
+					nearest_manila_pos.x,
+					nearest_manila_pos.z,
 					distance
 				]
 		)

@@ -15,7 +15,7 @@ const JUMP_VELOCITY = 3.0
 # Crouching Settings
 const STAND_HEAD_HEIGHT = 1.6
 const CROUCH_HEAD_HEIGHT = 0.8
-const STAND_CAPSULE_HEIGHT = 2.0
+const STAND_CAPSULE_HEIGHT = 1.55
 const CROUCH_CAPSULE_HEIGHT = 1.0
 const CROUCH_LERP_SPEED = 10.0
 
@@ -30,7 +30,7 @@ const BOB_WALK_FREQ = 12.0
 const BOB_SPRINT_FREQ = 16.0
 const BOB_CROUCH_FREQ = 8.0
 
-const BOB_WALK_AMP = Vector2(0.02, 0.035)    # (X = horizontal sway, Y = vertical bob)
+const BOB_WALK_AMP = Vector2(0.02, 0.035)
 const BOB_SPRINT_AMP = Vector2(0.04, 0.06)
 const BOB_CROUCH_AMP = Vector2(0.01, 0.015)
 
@@ -48,6 +48,10 @@ const SPRINT_STEP_INTERVAL = 0.22
 const CROUCH_STEP_INTERVAL = 0.55
 var step_timer: float = 0.0
 
+# Surface Footstep Audio Streams
+@export var carpet_footstep_stream: AudioStreamRandomizer
+@export var wood_footstep_stream: AudioStreamRandomizer
+
 # State
 var is_sprinting: bool = false
 var is_crouching: bool = false
@@ -59,6 +63,7 @@ var touch_look_finger_id: int = -1
 # Nodes
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
+@onready var interact_raycast: RayCast3D = $Head/Camera3D/InteractRayCast
 @onready var footstep_audio: AudioStreamPlayer3D = $Head/FootstepAudio
 @onready var floor_detector: RayCast3D = $FloorDetector
 @onready var ceiling_detector: RayCast3D = $CeilingDetector
@@ -105,6 +110,25 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event.is_action_pressed("crouch"):
 		toggle_crouch()
+
+	if event.is_action_pressed("interact"):
+		handle_interaction()
+
+func handle_interaction() -> void:
+	if not is_instance_valid(interact_raycast) or not interact_raycast.is_colliding():
+		return
+
+	var collider = interact_raycast.get_collider()
+	if not collider:
+		return
+
+	# Search up the node hierarchy to find the Door scene root
+	var target = collider
+	while target and not target.has_method("interact"):
+		target = target.get_parent()
+
+	if target and target.has_method("interact"):
+		target.interact()
 
 func handle_mobile_touch_look(event: InputEvent) -> void:
 	if not DisplayServer.is_touchscreen_available() and not OS.has_feature("mobile"):
@@ -211,7 +235,6 @@ func handle_camera_fov(delta: float) -> void:
 func handle_head_bob(delta: float) -> void:
 	var horizontal_speed = Vector2(velocity.x, velocity.z).length()
 
-	# Determine target frequency and amplitude based on state
 	var target_freq = BOB_WALK_FREQ
 	var target_amp = BOB_WALK_AMP
 
@@ -231,7 +254,6 @@ func handle_head_bob(delta: float) -> void:
 	else:
 		bob_timer = 0.0
 
-	# Interpolate Camera's local position relative to Head
 	camera.position = camera.position.lerp(target_offset, BOB_LERP_SPEED * delta)
 
 func handle_footsteps(delta: float) -> void:
@@ -272,9 +294,18 @@ func check_and_play_surface_sound() -> void:
 	elif collider.get_parent() and collider.get_parent().has_meta("material_type"):
 		mat_type = collider.get_parent().get_meta("material_type")
 
-	if mat_type == "carpet":
-		if is_instance_valid(footstep_audio):
-			footstep_audio.play()
+	if not is_instance_valid(footstep_audio):
+		return
+
+	match mat_type:
+		"wood":
+			if wood_footstep_stream and footstep_audio.stream != wood_footstep_stream:
+				footstep_audio.stream = wood_footstep_stream
+		"carpet", _:
+			if carpet_footstep_stream and footstep_audio.stream != carpet_footstep_stream:
+				footstep_audio.stream = carpet_footstep_stream
+
+	footstep_audio.play()
 
 func _exit_tree() -> void:
 	var console_node = get_node_or_null("/root/Console")

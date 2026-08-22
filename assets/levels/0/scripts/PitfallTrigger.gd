@@ -23,7 +23,4 @@ func _on_body_entered(body: Node3D) -> void:
 			# SUCCESS: Glitch transition to Level 1
 			await get_tree().create_timer(1.2).timeout
 			get_tree().change_scene_to_file(level_1_path)
-		else:
-			# FAILURE: Reset current level / reload scene
-			await get_tree().create_timer(1.2).timeout
-			get_tree().reload_current_scene()
+		# otherwise player goes down as usual
