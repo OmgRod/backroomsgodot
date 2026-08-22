@@ -9,7 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://b1360hyoqdgf2" path="res://assets/levels/the-manila-room/meshes/light/light.glb" id="6_enb7s"]
 [ext_resource type="Texture2D" uid="uid://c81ghbhu54nd6" path="res://assets/levels/the-manila-room/meshes/chair/rustic_chair_3.png" id="8_wqvxy"]
 [ext_resource type="Texture2D" uid="uid://ch1r6qwfnsjii" path="res://assets/levels/the-manila-room/meshes/chair/rustic_chair_2.png" id="9_x5m3p"]
-[ext_resource type="PackedScene" uid="uid://b5y1ysknyifv3" path="res://assets/levels/the-manila-room/meshes/table/OctagonalTable.glb" id="10_x5m3p"]
+[ext_resource type="PackedScene" uid="uid://cx2ai114u86id" path="res://assets/levels/the-manila-room/meshes/table/octagonal_table.tscn" id="10_x5m3p"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_yfus7"]
 material = ExtResource("1_kem4v")
@@ -375,4 +375,4 @@ mesh = SubResource("ArrayMesh_f7pv0")
 shape = SubResource("ConcavePolygonShape3D_ibskm")
 
 [node name="OctagonalTable" parent="." unique_id=1277901403 instance=ExtResource("10_x5m3p")]
-transform = Transform3D(-0.50495446, 0, 0.86314595, 0, 1, 0, -0.86314595, 0, -0.50495446, 5.1724606, 0.32499993, 0.64264184)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.172, 0.325, 0.643)
