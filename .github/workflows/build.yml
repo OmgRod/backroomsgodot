@@ -8,7 +8,7 @@ jobs:
   export-game:
     runs-on: ubuntu-latest
     container:
-      image: barichello/godot-ci:4.3.2-stable
+      image: barichello/godot-ci:latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,7 +24,7 @@ jobs:
         run: |
           mkdir -p build/linux build/windows build/macos
           
-          # Preset names must match your export_presets.cfg exactly
+          # Preset names match your export_presets.cfg exactly
           godot --headless --verbose --export-release "Linux" build/linux/Backrooms.x86_64
           godot --headless --verbose --export-release "Windows Desktop" build/windows/Backrooms.exe
           godot --headless --verbose --export-release "macOS" build/macos/Backrooms.zip
