@@ -7,6 +7,7 @@ extends Node3D
 @export var wall_scene: PackedScene = preload("res://assets/levels/0/meshes/wall.tscn")
 @export var manila_scene: PackedScene = preload("res://assets/levels/0/chunks/manila_room.tscn")
 @export var flickering_wall_scene: PackedScene = preload("res://assets/levels/0/meshes/flickering_wall.tscn")
+@export var arches_scene: PackedScene = preload("res://assets/levels/0/meshes/arches.tscn")
 
 # Grid Configuration (2x2m CHUNKS)
 const CHUNK_SIZE: float = 2.0         # 2x2m horizontal chunk
@@ -24,6 +25,7 @@ const SECTOR_SIZE_CHUNKS: int = 8
 const MANILA_SALT: int = 7777
 const PITFALL_SALT: int = 9999
 const SHIFT_SALT: int = 12345
+const ARCHES_SALT: int = 54321
 
 # Generation Parameters
 var SEED: int = int(Time.get_unix_time_from_system())
@@ -37,14 +39,15 @@ var chunk_shift_versions: Dictionary = {} # Tracks peripheral shift seeds per ch
 var last_player_chunk: Vector2i = Vector2i(99999, 99999)
 
 # Audio References
-@onready var ambience_audio: AudioStreamPlayer = get_node_or_null("../Ambience") as AudioStreamPlayer
-@onready var piano_audio: AudioStreamPlayer = get_node_or_null("../ManilaPiano") as AudioStreamPlayer
+@onready var ambience_audio: AudioStreamPlayer3D = get_node_or_null("../Ambience") as AudioStreamPlayer3D
+@onready var piano_audio: AudioStreamPlayer3D = get_node_or_null("../ManilaPiano") as AudioStreamPlayer3D
 
 enum RegionalZone {
 	NORMAL,
 	BLACKOUT,
 	PILLARS,
-	FLICKER
+	FLICKER,
+	ARCHES
 }
 
 func _ready() -> void:
@@ -111,6 +114,10 @@ func _apply_peripheral_shift(player_chunk: Vector2i) -> void:
 
 	var keys = loaded_chunks.keys()
 	for coords in keys:
+		# LORE COMPLIANCE: Archway rooms and Manila Room chunks never shift behind the player
+		if get_regional_zone(coords) == RegionalZone.ARCHES or is_in_manila_6x6_zone(coords):
+			continue
+
 		var chunk_pos = Vector3(coords.x * CHUNK_SIZE, 0.0, coords.y * CHUNK_SIZE)
 		var dir_to_chunk = (chunk_pos - cam_pos).normalized()
 		dir_to_chunk.y = 0
@@ -136,6 +143,8 @@ func get_regional_zone(coords: Vector2i) -> RegionalZone:
 		return RegionalZone.PILLARS
 	elif rand_val < 0.22:
 		return RegionalZone.FLICKER
+	elif rand_val < 0.30:
+		return RegionalZone.ARCHES
 	else:
 		return RegionalZone.NORMAL
 
@@ -215,7 +224,7 @@ func raw_manila_check(sector_x: int, sector_z: int) -> bool:
 		return false
 
 	var hash_val = get_2d_hash(sector_x, sector_z, MANILA_SALT)
-	return hash_val <= 0.1
+	return hash_val <= 0.0001
 
 func is_in_manila_6x6_zone(coords_2d: Vector2i) -> bool:
 	var sector_x = floori(float(coords_2d.x) / SECTOR_SIZE_CHUNKS)
@@ -263,7 +272,6 @@ func is_manila_flicker_wall_chunk(coords_2d: Vector2i) -> bool:
 	if not raw_manila_check(sector_x, sector_z):
 		return false
 
-	# Outer 6x6 starts at +1, +1. This puts the exit wall at chunk +0, +3 (just outside the 6x6 wall boundary)
 	var perimeter_wall_x = (sector_x * SECTOR_SIZE_CHUNKS) + 0
 	var perimeter_wall_z = (sector_z * SECTOR_SIZE_CHUNKS) + 3
 
@@ -284,11 +292,13 @@ func spawn_chunk(coords: Vector2i, enable_collision: bool) -> void:
 	if is_pitfall:
 		instance = pitfall_scene.instantiate() as Node3D
 	elif is_manila_inner:
-		if is_manila_anchor:
+		# Inner 4x4 Manila space gets NO base chunk (prevents yellow wallpaper/lights from overlapping)
+		if is_manila_anchor and manila_scene:
 			instance = manila_scene.instantiate() as Node3D
 		else:
-			instance = Node3D.new() # Reserve space
+			instance = Node3D.new() # Empty container for the rest of the inner room space
 	else:
+		# Outer 6x6 border and normal Backrooms space get standard base chunks
 		instance = chunk_scene.instantiate() as Node3D
 
 	add_child(instance)
@@ -313,6 +323,11 @@ func _apply_zone_lighting(chunk_instance: Node3D, coords: Vector2i) -> void:
 		light_node = chunk_instance.find_child("*OmniLight3D*", true, false) as OmniLight3D
 
 	if light_node:
+		if is_in_manila_6x6_zone(coords):
+			light_node.visible = true
+			light_node.light_energy = BASE_LIGHT_ENERGY
+			return
+
 		var zone = get_regional_zone(coords)
 		match zone:
 			RegionalZone.BLACKOUT:
@@ -321,7 +336,7 @@ func _apply_zone_lighting(chunk_instance: Node3D, coords: Vector2i) -> void:
 			RegionalZone.FLICKER:
 				light_node.visible = true
 				light_node.light_energy = BASE_LIGHT_ENERGY * (0.3 + randf() * 0.7)
-			RegionalZone.NORMAL, RegionalZone.PILLARS, _:
+			RegionalZone.NORMAL, RegionalZone.PILLARS, RegionalZone.ARCHES, _:
 				light_node.visible = true
 				light_node.light_energy = BASE_LIGHT_ENERGY
 
@@ -348,11 +363,42 @@ func generate_backrooms_geometry(chunk_node: Node3D, coords: Vector2i, enable_co
 	var local_x = posmod(coords.x, SECTOR_SIZE_CHUNKS)
 	var local_z = posmod(coords.y, SECTOR_SIZE_CHUNKS)
 
+	# 1. Pillar Zone Handling
 	if zone == RegionalZone.PILLARS:
 		if local_x % 2 == 0 and local_z % 2 == 0:
 			spawn_wall_segment(chunk_node, Vector3.ZERO, Vector3(0.8, WALL_HEIGHT, 0.8), enable_collision)
 		return
 
+	# 2. Archway Zone Handling (Lore-Accurate Continuous Arch Partition Walls)
+	if zone == RegionalZone.ARCHES:
+		var sector_x = floori(float(coords.x) / SECTOR_SIZE_CHUNKS)
+		var sector_z = floori(float(coords.y) / SECTOR_SIZE_CHUNKS)
+		var is_horizontal_line = get_2d_hash(sector_x, sector_z, ARCHES_SALT) > 0.5
+
+		var should_spawn_arch = false
+		if is_horizontal_line and local_z == 3:
+			should_spawn_arch = true
+		elif not is_horizontal_line and local_x == 3:
+			should_spawn_arch = true
+
+		if should_spawn_arch and arches_scene:
+			var arch_instance = arches_scene.instantiate() as Node3D
+			chunk_node.add_child(arch_instance)
+
+			var angle_deg = 0.0 if is_horizontal_line else 90.0
+			var angle_rad = deg_to_rad(angle_deg)
+
+			var length_scale = CHUNK_SIZE / 1.5
+			arch_instance.scale = Vector3(length_scale, 1.0, 1.0)
+
+			var local_center_offset = Vector3(CHUNK_SIZE * 0.5, 0.0, 0.0)
+			arch_instance.position = local_center_offset.rotated(Vector3.UP, angle_rad)
+			arch_instance.rotation_degrees.y = angle_deg
+
+			update_chunk_collision_state(arch_instance, enable_collision)
+		return
+
+	# 3. Standard Random Monotonous Wall Generation
 	var layout_val = wall_layout_noise.get_noise_2d(float(coords.x), float(coords.y))
 
 	if layout_val > 0.22:
@@ -415,7 +461,7 @@ func register_console_commands() -> void:
 	var console_node = get_node_or_null("/root/Console")
 	if console_node:
 		console_node.add_command("locate", _cmd_locate, 1)
-		var locate_targets = ["pitfalls", "pitfall", "player", "manila", "manilaroom"]
+		var locate_targets = ["pitfalls", "pitfall", "player", "manila", "manilaroom", "arches", "arch"]
 		console_node.add_command_autocomplete_list("locate", locate_targets)
 
 func _cmd_locate(target_name: String) -> void:
@@ -430,6 +476,8 @@ func _cmd_locate(target_name: String) -> void:
 			_locate_nearest_pitfall(console_node)
 		"manila", "manilaroom":
 			_locate_nearest_manila(console_node)
+		"arches", "arch":
+			_locate_nearest_arches(console_node)
 		"player":
 			if is_instance_valid(player):
 				var pos = player.global_position
@@ -437,7 +485,7 @@ func _cmd_locate(target_name: String) -> void:
 			else:
 				console_node.print_line("Error: Player node not found.")
 		_:
-			console_node.print_line("Unknown locate target: '%s'. Options: pitfalls, manila, player" % target_name)
+			console_node.print_line("Unknown locate target: '%s'. Options: pitfalls, manila, arches, player" % target_name)
 
 func _locate_nearest_pitfall(console_node: Node) -> void:
 	var start_pos = player.global_position if is_instance_valid(player) else global_position
@@ -517,6 +565,43 @@ func _locate_nearest_manila(console_node: Node) -> void:
 	else:
 		console_node.print_line("No Manila Room found within search range.")
 
+func _locate_nearest_arches(console_node: Node) -> void:
+	var start_pos = player.global_position if is_instance_valid(player) else global_position
+
+	var current_sector_x = floori((start_pos.x / CHUNK_SIZE) / float(SECTOR_SIZE_CHUNKS))
+	var current_sector_z = floori((start_pos.z / CHUNK_SIZE) / float(SECTOR_SIZE_CHUNKS))
+
+	var nearest_arch_pos := Vector3.ZERO
+	var shortest_dist_sq := INF
+	var search_radius := 50
+
+	for sx in range(current_sector_x - search_radius, current_sector_x + search_radius + 1):
+		for sz in range(current_sector_z - search_radius, current_sector_z + search_radius + 1):
+			var sample_coords = Vector2i(sx * SECTOR_SIZE_CHUNKS, sz * SECTOR_SIZE_CHUNKS)
+			if get_regional_zone(sample_coords) == RegionalZone.ARCHES:
+				var arch_world_pos = Vector3(
+						((sx * SECTOR_SIZE_CHUNKS) + 3.0) * CHUNK_SIZE,
+						0.0,
+						((sz * SECTOR_SIZE_CHUNKS) + 3.0) * CHUNK_SIZE
+				)
+
+				var dist_sq = start_pos.distance_squared_to(arch_world_pos)
+				if dist_sq < shortest_dist_sq:
+					shortest_dist_sq = dist_sq
+					nearest_arch_pos = arch_world_pos
+
+	if shortest_dist_sq != INF:
+		var distance = sqrt(shortest_dist_sq)
+		console_node.print_line(
+				"Nearest Archway Room found at: (X: %.1f, Y: 0.0, Z: %.1f) [~%.1fm away]" % [
+					nearest_arch_pos.x,
+					nearest_arch_pos.z,
+					distance
+				]
+		)
+	else:
+		console_node.print_line("No Archway Rooms found within search range.")
+
 # ==========================================
 # WALKABILITY VALIDATION FOR RESPAWN
 # ==========================================
@@ -530,6 +615,9 @@ func is_chunk_walkable(coords: Vector2i) -> bool:
 	var zone = get_regional_zone(coords)
 	if zone == RegionalZone.PILLARS:
 		return false
+
+	if zone == RegionalZone.ARCHES:
+		return true
 
 	var layout_val = wall_layout_noise.get_noise_2d(float(coords.x), float(coords.y))
 	if layout_val > 0.22 or layout_val < -0.28:

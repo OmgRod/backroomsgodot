@@ -12,3 +12,5 @@ Manila Room chair - Araon: https://sketchfab.com/3d-models/rustic-chair-77afa26a
 Level 1 crates - KloWorks: https://sketchfab.com/3d-models/crate-box-e1a6856037c54d0d9019aedf61315569
 Level 1 overhead light - Sousinho: https://sketchfab.com/3d-models/worn-overlead-light-654a331b3d4348d4b885cfd4770a7e4f
 Wet asphalt - Mahsa: https://cgmood.com/material/procedural-wet-asphalt
+Level 0 arches - OmgRod: (no link)
+Level 0 arches material - Dimitrios Savva & Rico Cilliers: https://polyhaven.com/a/beige_wall_001

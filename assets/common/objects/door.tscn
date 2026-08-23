@@ -14,3 +14,5 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.415)
 
 [node name="Mesh" parent="DoorPanel" unique_id=1327735886 instance=ExtResource("2_f5rsu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.415)
+
+[node name="Audio" type="AudioStreamPlayer3D" parent="." unique_id=905448146]

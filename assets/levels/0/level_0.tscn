@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://cq2mu0ihyq0pe" path="res://scripts/ScarySound.gd" id="8_nedi4"]
 [ext_resource type="AudioStream" uid="uid://drpbjy1s0qnql" path="res://assets/levels/0/sounds/fluorescent_lights.mp3" id="8_pcouv"]
 [ext_resource type="Script" uid="uid://dvo3vl1d8qka3" path="res://scripts/LoopSound.gd" id="9_01y0n"]
+[ext_resource type="AudioStream" uid="uid://ddrnwiaixhhay" path="res://assets/levels/the-manila-room/sounds/gymnopedieno1.ogg" id="10_v0abi"]
 
 [sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_pcouv"]
 streams_count = 5
@@ -37,8 +38,13 @@ script = ExtResource("8_nedi4")
 
 [node name="Ambience" type="AudioStreamPlayer3D" parent="." unique_id=4284779]
 stream = ExtResource("8_pcouv")
+volume_db = 7.5
 autoplay = true
 script = ExtResource("9_01y0n")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=87486413]
 environment = SubResource("Environment_01y0n")
+
+[node name="ManilaPiano" type="AudioStreamPlayer3D" parent="." unique_id=174572694]
+stream = ExtResource("10_v0abi")
+volume_db = 15.0

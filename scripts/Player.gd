@@ -179,7 +179,8 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
-	if Input.is_action_pressed("jump") and is_on_floor() and not is_crouching:
+	# Enable jumping even while crouching
+	if Input.is_action_pressed("jump") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
 
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
@@ -317,13 +318,23 @@ func check_and_play_surface_sound() -> void:
 	if not is_instance_valid(footstep_audio):
 		return
 
+	# Silence footstep playback and log missing metadata warning if unassigned
+	if mat_type.is_empty():
+		var node_path = collider.get_path()
+		push_warning("Footstep Audio Skipped: Collider at '%s' is missing 'material_type' metadata!" % node_path)
+		return
+
 	match mat_type:
 		"wood":
 			if wood_footstep_stream and footstep_audio.stream != wood_footstep_stream:
 				footstep_audio.stream = wood_footstep_stream
-		"carpet", _:
+		"carpet":
 			if carpet_footstep_stream and footstep_audio.stream != carpet_footstep_stream:
 				footstep_audio.stream = carpet_footstep_stream
+		_:
+			# Fallback for unexpected material type tags
+			push_warning("Unknown material_type tag '%s' on '%s'!" % [mat_type, collider.get_path()])
+			return
 
 	footstep_audio.play()
 

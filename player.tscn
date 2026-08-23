@@ -79,6 +79,7 @@ target_position = Vector3(0, -1, -3)
 [node name="FootstepAudio" type="AudioStreamPlayer3D" parent="Head" unique_id=1736091568]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 stream = SubResource("AudioStreamRandomizer_4flbx")
+volume_db = -15.0
 unit_size = 2.0
 
 [node name="ShaderOverlay" type="CanvasLayer" parent="Head" unique_id=1334494868]
