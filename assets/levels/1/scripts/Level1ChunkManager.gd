@@ -7,7 +7,7 @@ extends Node3D
 @export var corridor_room_scene: PackedScene
 @export var wall_scene: PackedScene = preload("res://assets/levels/1/meshes/wall.tscn")
 
-# Handcrafted POI Anchors
+# Handcrafted POI Anchors (Base Alpha, Trader's Keep, Hippocrates-1, etc.)
 @export var base_alpha_scene: PackedScene
 @export var traders_keep_scene: PackedScene
 @export var hippocrates_1_scene: PackedScene
@@ -15,25 +15,26 @@ extends Node3D
 @export var registration_spot_scene: PackedScene
 @export var toms_diner_scene: PackedScene
 
-# Props & Objects
+# Props & Objects (Level 1 Supply Crates)
 @export var crate_prop_scene: PackedScene
 
 # Environmental Mechanics
 @export var enable_blackout_events: bool = true
 
 # Grid & Layout Parameters
-const ROOM_SIZE: float = 12.0          # 12x12m Room Module Size
-const MACRO_SIZE: int = 6               # Macro-Block Size (6x6 rooms = 72x72m)
-const RENDER_DISTANCE: int = 4          # Room radius (9x9 grid loaded)
-const LOD_0_DIST: int = 2               # Active collision radius
-const WALL_HEIGHT: float = 4.0          # Level 1 Ceiling Height
-const WALL_THICKNESS: float = 0.4       # Concrete Wall Thickness
-const DOOR_WIDTH: float = 2.4           # Exit Doorway Opening Width
+const ROOM_SIZE: float = 12.0         # 12x12m Room Module Size
+const MACRO_SIZE: int = 6             # Macro-Block Size (6x6 rooms = 72x72m)
+const RENDER_DISTANCE: int = 4        # Room radius (9x9 grid loaded)
+const LOD_0_DIST: int = 2             # Active collision radius
+const WALL_HEIGHT: float = 4.0        # Level 1 Concrete Ceiling Height
+const WALL_THICKNESS: float = 0.4     # Concrete Wall Thickness
+const DOOR_WIDTH: float = 2.4         # Exit Doorway Opening Width
 const BASE_LIGHT_ENERGY: float = 1.2
 
-# Salts
+# Salts for Level 1 POIs & Phenomena
 const BASE_ALPHA_SALT: int = 11111
 const TRADERS_KEEP_SALT: int = 22222
+const HIPPOCRATES_SALT: int = 33333
 const DINER_SALT: int = 66666
 const SHIFT_SALT: int = 77777
 
@@ -47,20 +48,21 @@ var loaded_rooms: Dictionary = {}
 var room_shift_versions: Dictionary = {}
 var last_player_room: Vector2i = Vector2i(99999, 99999)
 
+# Level 1 Sectors based on official lore nomenclature
 enum SectorType {
-	AQUILA,    # Standard Parking Structure
-	GILD,      # Storage Warehouse
-	GOTHIC,    # Curved Arches & Round Pillars
-	OUROBOROS, # Construction & Scaffolding
-	GARDEN,    # Overgrown Mossy Concrete
-	FABLED     # Antique Wood & Neon Cables
+	AQUILA,    # Standard Concrete Parking Structure (M.E.G. Base Alpha territory)
+	GILD,      # Storage Warehouse & B.N.T.G. Trader's Keep hub
+	GOTHIC,    # Arches, Round Pillars & Hippocrates-1 medical sector
+	OUROBOROS, # Ongoing Structural Maintenance & Construction Zones
+	GARDEN,    # Overgrown Mossy Concrete and Damp Zones
+	FABLED     # Antique Wood and Altered Anomalous Corridors
 }
 
 enum MacroBlockType {
-	SINGLE_RECT_HALL,  # One clean rectangular parking hall
-	JOINED_RECT_HALL,  # L-shaped double rectangular hall
-	POI_COMPOUND,      # Base Alpha / Diner / Outpost
-	CORRIDOR_MAZE      # Tight side corridor network & rooms
+	SINGLE_RECT_HALL,
+	JOINED_RECT_HALL,
+	POI_COMPOUND,      # M.E.G. Bases, Trader hubs, or Diner rest stops
+	CORRIDOR_MAZE
 }
 
 func _ready() -> void:
@@ -128,7 +130,6 @@ func get_sector_at(coords: Vector2i) -> SectorType:
 # MACRO-GRID RECTANGULAR LAYOUT ENGINE
 # ==========================================
 func get_chunk_layout_info(coords: Vector2i) -> Dictionary:
-	# Keep origin chunk safe and open for player spawn
 	if abs(coords.x) <= 1 and abs(coords.y) <= 1:
 		return {
 			"is_hall": true,
@@ -145,7 +146,6 @@ func get_chunk_layout_info(coords: Vector2i) -> Dictionary:
 			"west_door": false
 		}
 
-	# Calculate Macro-Block Coordinates (6x6 room grid = 72x72m)
 	var macro_x = floori(float(coords.x) / float(MACRO_SIZE))
 	var macro_z = floori(float(coords.y) / float(MACRO_SIZE))
 	var macro_pos = Vector2i(macro_x, macro_z)
@@ -155,7 +155,6 @@ func get_chunk_layout_info(coords: Vector2i) -> Dictionary:
 
 	var macro_hash = get_2d_hash(macro_pos.x, macro_pos.y, 99999)
 
-	# Determine Macro-Block Structure
 	var block_type = MacroBlockType.SINGLE_RECT_HALL
 	if macro_hash < 0.08:
 		block_type = MacroBlockType.POI_COMPOUND
@@ -166,13 +165,12 @@ func get_chunk_layout_info(coords: Vector2i) -> Dictionary:
 	else:
 		block_type = MacroBlockType.CORRIDOR_MAZE
 
-	# Define Even Rectangular Bounds within the 6x6 Macro Block
-	var rect_1 = Rect2i(1, 1, 4, 4) # Standard 4x4 hall (48x48m)
-	var rect_2 = Rect2i(1, 1, 0, 0) # Optional joined rectangle for L-shape
+	var rect_1 = Rect2i(1, 1, 4, 4)
+	var rect_2 = Rect2i(1, 1, 0, 0)
 
 	if block_type == MacroBlockType.JOINED_RECT_HALL:
 		rect_1 = Rect2i(1, 1, 4, 3)
-		rect_2 = Rect2i(3, 4, 2, 2) # Attached joined rectangle
+		rect_2 = Rect2i(3, 4, 2, 2)
 	elif block_type == MacroBlockType.POI_COMPOUND:
 		rect_1 = Rect2i(1, 1, 3, 3)
 
@@ -184,7 +182,6 @@ func get_chunk_layout_info(coords: Vector2i) -> Dictionary:
 	if block_type == MacroBlockType.CORRIDOR_MAZE:
 		is_hall = false
 
-	# Wall Boundary Checking for Even Rectangles
 	var n_wall = false
 	var s_wall = false
 	var e_wall = false
@@ -199,38 +196,36 @@ func get_chunk_layout_info(coords: Vector2i) -> Dictionary:
 		var half_r1_x = floori(float(rect_1.size.x) * 0.5)
 		var half_r1_z = floori(float(rect_1.size.y) * 0.5)
 
-		# Check North edge
 		if not rect_1.has_point(local_p + Vector2i(0, -1)) and not rect_2.has_point(local_p + Vector2i(0, -1)):
 			n_wall = true
 			if local_x == rect_1.position.x + half_r1_x:
-				n_door = true # Center doorway exit to side corridors
+				n_door = true
 
-		# Check South edge
 		if not rect_1.has_point(local_p + Vector2i(0, 1)) and not rect_2.has_point(local_p + Vector2i(0, 1)):
 			s_wall = true
 			if local_x == rect_1.position.x + half_r1_x:
 				s_door = true
 
-		# Check West edge
 		if not rect_1.has_point(local_p + Vector2i(-1, 0)) and not rect_2.has_point(local_p + Vector2i(-1, 0)):
 			w_wall = true
 			if local_z == rect_1.position.y + half_r1_z:
 				w_door = true
 
-		# Check East edge
 		if not rect_1.has_point(local_p + Vector2i(1, 0)) and not rect_2.has_point(local_p + Vector2i(1, 0)):
 			e_wall = true
 			if local_z == rect_1.position.y + half_r1_z:
 				e_door = true
 
-	# Check Major POI Spawns inside POI Macro Compounds
+	# POI Spawns mapping to Base Alpha, Trader's Keep, Hippocrates-1, or Tom's Diner
 	var poi_type = ""
 	if block_type == MacroBlockType.POI_COMPOUND and local_x == 2 and local_z == 2:
 		var poi_hash = get_2d_hash(macro_pos.x, macro_pos.y, 888)
-		if poi_hash < 0.30:
+		if poi_hash < 0.25:
 			poi_type = "base_alpha"
-		elif poi_hash < 0.60:
+		elif poi_hash < 0.50:
 			poi_type = "traders_keep"
+		elif poi_hash < 0.75:
+			poi_type = "hippocrates_1"
 		else:
 			poi_type = "diner"
 
@@ -248,7 +243,7 @@ func get_chunk_layout_info(coords: Vector2i) -> Dictionary:
 	}
 
 # ==========================================
-# PERIPHERAL SHIFT SYSTEM
+# PERIPHERAL SHIFT SYSTEM (Level 1 Spatial Reconfig)
 # ==========================================
 func _apply_peripheral_shift(player_room: Vector2i) -> void:
 	if not is_instance_valid(player) or not player.has_method("get_camera_forward"):
@@ -308,23 +303,21 @@ func spawn_room(coords: Vector2i, enable_collision: bool) -> void:
 
 	var poi_type: String = layout.get("poi_type", "")
 
-	# 1. POI Rooms
 	if poi_type != "":
 		match poi_type:
 			"base_alpha":
 				instance = base_alpha_scene.instantiate() if base_alpha_scene else hall_room_scene.instantiate()
 			"traders_keep":
 				instance = traders_keep_scene.instantiate() if traders_keep_scene else hall_room_scene.instantiate()
+			"hippocrates_1":
+				instance = hippocrates_1_scene.instantiate() if hippocrates_1_scene else hall_room_scene.instantiate()
 			"diner":
 				instance = toms_diner_scene.instantiate() if toms_diner_scene else hall_room_scene.instantiate()
-	# 2. Open Parking Halls
 	elif layout.get("is_hall", false):
 		if hall_room_scene:
 			instance = hall_room_scene.instantiate()
 		else:
-			push_error("Hall Room Scene is missing on ChunkManager Inspector!")
 			return
-	# 3. Side Corridors
 	else:
 		if corridor_room_scene:
 			instance = corridor_room_scene.instantiate()
@@ -340,7 +333,6 @@ func spawn_room(coords: Vector2i, enable_collision: bool) -> void:
 	var world_z = coords.y * ROOM_SIZE
 	instance.global_position = Vector3(world_x, 0.0, world_z)
 
-	# Build perimeter concrete walls around the rectangular halls
 	if layout.get("is_hall", false) and poi_type == "":
 		_construct_hall_boundary_walls(instance, layout, enable_collision)
 
@@ -352,32 +344,27 @@ func spawn_room(coords: Vector2i, enable_collision: bool) -> void:
 	loaded_rooms[coords] = instance
 
 # ==========================================
-# RECTANGULAR HALL BOUNDARY WALL BUILDER
+# WAREHOUSE BOUNDARY WALL BUILDER
 # ==========================================
 func _construct_hall_boundary_walls(chunk_node: Node3D, layout: Dictionary, enable_collision: bool) -> void:
 	var wall_h = WALL_HEIGHT * 0.5
 	var half_s = ROOM_SIZE * 0.5
 
-	# Corner Pillar Sealer to prevent leaks
 	if layout.get("north_wall", false) or layout.get("west_wall", false) or layout.get("south_wall", false) or layout.get("east_wall", false):
 		spawn_wall_box(chunk_node, Vector3(0, wall_h, 0), Vector3(1.0, WALL_HEIGHT, 1.0), enable_collision)
 		spawn_wall_box(chunk_node, Vector3(ROOM_SIZE, wall_h, 0), Vector3(1.0, WALL_HEIGHT, 1.0), enable_collision)
 		spawn_wall_box(chunk_node, Vector3(0, wall_h, ROOM_SIZE), Vector3(1.0, WALL_HEIGHT, 1.0), enable_collision)
 		spawn_wall_box(chunk_node, Vector3(ROOM_SIZE, wall_h, ROOM_SIZE), Vector3(1.0, WALL_HEIGHT, 1.0), enable_collision)
 
-	# North Wall
 	if layout.get("north_wall", false):
 		_build_wall_face(chunk_node, Vector3(half_s, wall_h, 0.0), Vector3(ROOM_SIZE, WALL_HEIGHT, WALL_THICKNESS), layout.get("north_door", false), true, enable_collision)
 
-	# South Wall
 	if layout.get("south_wall", false):
 		_build_wall_face(chunk_node, Vector3(half_s, wall_h, ROOM_SIZE), Vector3(ROOM_SIZE, WALL_HEIGHT, WALL_THICKNESS), layout.get("south_door", false), true, enable_collision)
 
-	# West Wall
 	if layout.get("west_wall", false):
 		_build_wall_face(chunk_node, Vector3(0.0, wall_h, half_s), Vector3(WALL_THICKNESS, WALL_HEIGHT, ROOM_SIZE), layout.get("west_door", false), false, enable_collision)
 
-	# East Wall
 	if layout.get("east_wall", false):
 		_build_wall_face(chunk_node, Vector3(ROOM_SIZE, wall_h, half_s), Vector3(WALL_THICKNESS, WALL_HEIGHT, ROOM_SIZE), layout.get("east_door", false), false, enable_collision)
 
@@ -385,7 +372,6 @@ func _build_wall_face(chunk_node: Node3D, pos: Vector3, size: Vector3, is_doorwa
 	if not is_doorway:
 		spawn_wall_box(chunk_node, pos, size, enable_collision)
 	else:
-		# Wall with doorway exit cutout
 		var side_w = (ROOM_SIZE - DOOR_WIDTH) * 0.5
 		var header_h = 1.2
 		var header_y = WALL_HEIGHT - (header_h * 0.5)
@@ -418,7 +404,6 @@ func spawn_wall_box(parent_chunk: Node3D, local_pos: Vector3, dimensions: Vector
 	parent_chunk.add_child(wall_instance)
 	wall_instance.position = local_pos
 
-	# Mesh Setup
 	var mesh_node = wall_instance.find_child("*MeshInstance3D*", true, false) as MeshInstance3D
 	if not mesh_node and wall_instance is MeshInstance3D:
 		mesh_node = wall_instance as MeshInstance3D
@@ -436,7 +421,6 @@ func spawn_wall_box(parent_chunk: Node3D, local_pos: Vector3, dimensions: Vector
 	box_mesh.size = dimensions
 	mesh_node.mesh = box_mesh
 
-	# Collision Setup
 	var col_shape = wall_instance.find_child("*CollisionShape3D*", true, false) as CollisionShape3D
 	if not col_shape:
 		var static_body = wall_instance if wall_instance is StaticBody3D else wall_instance.find_child("*StaticBody3D*", true, false) as StaticBody3D
@@ -457,7 +441,7 @@ func spawn_wall_box(parent_chunk: Node3D, local_pos: Vector3, dimensions: Vector
 	col_shape.disabled = not enable_collision
 
 # ==========================================
-# SECTOR STYLING & PROPS
+# SECTOR STYLING & SUPPLY CRATES
 # ==========================================
 func _apply_sector_styling(room_node: Node3D, sector: SectorType) -> void:
 	match sector:
@@ -478,6 +462,7 @@ func _try_spawn_crate_props(room_node: Node3D, coords: Vector2i, sector: SectorT
 	if not crate_prop_scene:
 		return
 
+	# Gild sector has high crate density per lore (Trader's Keep storage hubs)
 	var crate_chance = 0.65 if sector == SectorType.GILD else 0.20
 	if get_2d_hash(coords.x, coords.y, 8888) < crate_chance:
 		var crate = crate_prop_scene.instantiate() as Node3D
@@ -490,6 +475,7 @@ func _try_spawn_crate_props(room_node: Node3D, coords: Vector2i, sector: SectorT
 
 func _apply_room_lighting(room_node: Node3D, coords: Vector2i) -> void:
 	var lights = room_node.find_children("*", "Light3D", true, false)
+	# Level 1 features unpredictable blackouts and light fixture flickering
 	var is_blackout = enable_blackout_events and (get_2d_hash(coords.x, coords.y, 777) < 0.10)
 	var is_flicker_room = enable_blackout_events and not is_blackout and (get_2d_hash(coords.x, coords.y, 999) < 0.20)
 
@@ -524,9 +510,6 @@ func get_2d_hash(x: int, z: int, salt: int = 0) -> float:
 	h = (h ^ (h >> 13)) * 1274126177
 	return float(h & 0x7FFFFFFF) / float(0x7FFFFFFF)
 
-# ==========================================
-# WALKABILITY VALIDATION FOR RESPAWN/SPAWN
-# ==========================================
 func is_room_walkable(_coords: Vector2i) -> bool:
 	return true
 
@@ -537,7 +520,7 @@ func register_console_commands() -> void:
 	var console_node = get_node_or_null("/root/Console")
 	if console_node:
 		console_node.add_command("locate", _cmd_locate, 1)
-		var locate_targets = ["player", "base_alpha", "traders_keep", "diner"]
+		var locate_targets = ["player", "base_alpha", "traders_keep", "hippocrates_1", "diner"]
 		console_node.add_command_autocomplete_list("locate", locate_targets)
 
 func _cmd_locate(target_name: String) -> void:
@@ -558,10 +541,12 @@ func _cmd_locate(target_name: String) -> void:
 			_locate_nearest_poi(console_node, BASE_ALPHA_SALT, "Base Alpha")
 		"traders_keep":
 			_locate_nearest_poi(console_node, TRADERS_KEEP_SALT, "Trader's Keep")
+		"hippocrates_1":
+			_locate_nearest_poi(console_node, HIPPOCRATES_SALT, "Hippocrates-1")
 		"diner":
 			_locate_nearest_poi(console_node, DINER_SALT, "Tom's Diner")
 		_:
-			console_node.print_line("Unknown target. Options: player, base_alpha, traders_keep, diner")
+			console_node.print_line("Unknown target. Options: player, base_alpha, traders_keep, hippocrates_1, diner")
 
 func _locate_nearest_poi(console_node: Node, poi_salt: int, poi_name: String) -> void:
 	var start_pos = player.global_position if is_instance_valid(player) else global_position

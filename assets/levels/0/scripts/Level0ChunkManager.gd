@@ -24,6 +24,7 @@ const THICK_WALL: float = 0.8
 const SECTOR_SIZE_CHUNKS: int = 8
 const MANILA_SALT: int = 7777
 const PITFALL_SALT: int = 9999
+const FLICKER_WALL_SALT: int = 8888
 const SHIFT_SALT: int = 12345
 const ARCHES_SALT: int = 54321
 
@@ -199,22 +200,29 @@ func update_chunks() -> void:
 			despawn_chunk(coords)
 
 # ==========================================
-# PITFALL CHECKS
+# PITFALL & FLICKER WALL CHECKS
 # ==========================================
 func is_in_pitfall_zone(coords_2d: Vector2i) -> bool:
 	var sector_x = floori(float(coords_2d.x) / SECTOR_SIZE_CHUNKS)
 	var sector_z = floori(float(coords_2d.y) / SECTOR_SIZE_CHUNKS)
 
-	return raw_pitfall_check(sector_x, sector_z) and is_within_pitfall_bounds(coords_2d, sector_x, sector_z)
+	return raw_pitfall_check(sector_x, sector_z) and is_within_bounds(coords_2d, sector_x, sector_z)
 
 func raw_pitfall_check(sector_x: int, sector_z: int) -> bool:
 	var hash_val = get_2d_hash(sector_x, sector_z, PITFALL_SALT)
-	return hash_val <= 0.001
+	return hash_val <= 0.005
 
-func is_within_pitfall_bounds(coords_2d: Vector2i, sector_x: int, sector_z: int) -> bool:
-	var pitfall_center_x = (sector_x * SECTOR_SIZE_CHUNKS) + 3
-	var pitfall_center_z = (sector_z * SECTOR_SIZE_CHUNKS) + 3
-	return abs(coords_2d.x - pitfall_center_x) <= 2 and abs(coords_2d.y - pitfall_center_z) <= 2
+func is_in_flicker_wall_zone(coords_2d: Vector2i) -> bool:
+	var sector_x = floori(float(coords_2d.x) / SECTOR_SIZE_CHUNKS)
+	var sector_z = floori(float(coords_2d.y) / SECTOR_SIZE_CHUNKS)
+
+	var hash_val = get_2d_hash(sector_x, sector_z, FLICKER_WALL_SALT)
+	return hash_val <= 0.005 and is_within_bounds(coords_2d, sector_x, sector_z)
+
+func is_within_bounds(coords_2d: Vector2i, sector_x: int, sector_z: int) -> bool:
+	var center_x = (sector_x * SECTOR_SIZE_CHUNKS) + 3
+	var center_z = (sector_z * SECTOR_SIZE_CHUNKS) + 3
+	return abs(coords_2d.x - center_x) <= 2 and abs(coords_2d.y - center_z) <= 2
 
 # ==========================================
 # MANILA ROOM CHECKS
@@ -224,7 +232,7 @@ func raw_manila_check(sector_x: int, sector_z: int) -> bool:
 		return false
 
 	var hash_val = get_2d_hash(sector_x, sector_z, MANILA_SALT)
-	return hash_val <= 0.0001
+	return hash_val <= 0.005
 
 func is_in_manila_6x6_zone(coords_2d: Vector2i) -> bool:
 	var sector_x = floori(float(coords_2d.x) / SECTOR_SIZE_CHUNKS)
@@ -282,6 +290,7 @@ func is_manila_flicker_wall_chunk(coords_2d: Vector2i) -> bool:
 # ==========================================
 func spawn_chunk(coords: Vector2i, enable_collision: bool) -> void:
 	var is_pitfall = is_in_pitfall_zone(coords)
+	var is_flicker_wall_zone = is_in_flicker_wall_zone(coords)
 	var is_manila_6x6 = is_in_manila_6x6_zone(coords)
 	var is_manila_inner = is_in_manila_inner_4x4_zone(coords)
 	var is_manila_anchor = is_manila_anchor_chunk(coords)
@@ -292,13 +301,11 @@ func spawn_chunk(coords: Vector2i, enable_collision: bool) -> void:
 	if is_pitfall:
 		instance = pitfall_scene.instantiate() as Node3D
 	elif is_manila_inner:
-		# Inner 4x4 Manila space gets NO base chunk (prevents yellow wallpaper/lights from overlapping)
 		if is_manila_anchor and manila_scene:
 			instance = manila_scene.instantiate() as Node3D
 		else:
-			instance = Node3D.new() # Empty container for the rest of the inner room space
+			instance = Node3D.new()
 	else:
-		# Outer 6x6 border and normal Backrooms space get standard base chunks
 		instance = chunk_scene.instantiate() as Node3D
 
 	add_child(instance)
@@ -307,8 +314,7 @@ func spawn_chunk(coords: Vector2i, enable_collision: bool) -> void:
 	var world_z = coords.y * CHUNK_SIZE
 	instance.global_position = Vector3(world_x, 0.0, world_z)
 
-	if is_manila_flicker_wall:
-		# Always spawn a flickering wall right outside the Manila Room
+	if is_manila_flicker_wall or is_flicker_wall_zone:
 		spawn_wall_segment(instance, Vector3(0.0, 0.0, -1.0), Vector3(CHUNK_SIZE, WALL_HEIGHT, THICK_WALL), enable_collision, true)
 	elif not is_pitfall and not is_manila_6x6:
 		generate_backrooms_geometry(instance, coords, enable_collision)
@@ -461,7 +467,7 @@ func register_console_commands() -> void:
 	var console_node = get_node_or_null("/root/Console")
 	if console_node:
 		console_node.add_command("locate", _cmd_locate, 1)
-		var locate_targets = ["pitfalls", "pitfall", "player", "manila", "manilaroom", "arches", "arch"]
+		var locate_targets = ["pitfalls", "pitfall", "player", "manila", "manilaroom", "arches", "arch", "wall", "walls", "flicker", "flickering"]
 		console_node.add_command_autocomplete_list("locate", locate_targets)
 
 func _cmd_locate(target_name: String) -> void:
@@ -478,6 +484,8 @@ func _cmd_locate(target_name: String) -> void:
 			_locate_nearest_manila(console_node)
 		"arches", "arch":
 			_locate_nearest_arches(console_node)
+		"wall", "walls", "flicker", "flickering":
+			_locate_nearest_flicker_wall(console_node)
 		"player":
 			if is_instance_valid(player):
 				var pos = player.global_position
@@ -485,7 +493,7 @@ func _cmd_locate(target_name: String) -> void:
 			else:
 				console_node.print_line("Error: Player node not found.")
 		_:
-			console_node.print_line("Unknown locate target: '%s'. Options: pitfalls, manila, arches, player" % target_name)
+			console_node.print_line("Unknown locate target: '%s'. Options: pitfalls, manila, arches, wall, player" % target_name)
 
 func _locate_nearest_pitfall(console_node: Node) -> void:
 	var start_pos = player.global_position if is_instance_valid(player) else global_position
@@ -525,6 +533,46 @@ func _locate_nearest_pitfall(console_node: Node) -> void:
 		)
 	else:
 		console_node.print_line("No pitfalls found within search range.")
+
+func _locate_nearest_flicker_wall(console_node: Node) -> void:
+	var start_pos = player.global_position if is_instance_valid(player) else global_position
+
+	var current_sector_x = floori((start_pos.x / CHUNK_SIZE) / float(SECTOR_SIZE_CHUNKS))
+	var current_sector_z = floori((start_pos.z / CHUNK_SIZE) / float(SECTOR_SIZE_CHUNKS))
+
+	var nearest_wall_pos := Vector3.ZERO
+	var shortest_dist_sq := INF
+	var search_radius := 40
+
+	for sx in range(current_sector_x - search_radius, current_sector_x + search_radius + 1):
+		for sz in range(current_sector_z - search_radius, current_sector_z + search_radius + 1):
+			var sector_hash = get_2d_hash(sx, sz, FLICKER_WALL_SALT)
+			if sector_hash <= 0.001:
+				var center_chunk_x = (sx * SECTOR_SIZE_CHUNKS) + 3.5
+				var center_chunk_z = (sz * SECTOR_SIZE_CHUNKS) + 3.5
+
+				var wall_world_pos = Vector3(
+						center_chunk_x * CHUNK_SIZE,
+						0.0,
+						center_chunk_z * CHUNK_SIZE
+				)
+
+				var dist_sq = start_pos.distance_squared_to(wall_world_pos)
+				if dist_sq < shortest_dist_sq:
+					shortest_dist_sq = dist_sq
+					nearest_wall_pos = wall_world_pos
+
+	if shortest_dist_sq != INF:
+		var distance = sqrt(shortest_dist_sq)
+		console_node.print_line(
+				"Nearest flickering wall found at: (X: %.1f, Y: 0.0, Z: %.1f) [~%.1fm away]" % [
+					nearest_wall_pos.x,
+					nearest_wall_pos.z,
+					distance
+				]
+		)
+	else:
+		console_node.print_line("No flickering walls found within search range.")
 
 func _locate_nearest_manila(console_node: Node) -> void:
 	var start_pos = player.global_position if is_instance_valid(player) else global_position
