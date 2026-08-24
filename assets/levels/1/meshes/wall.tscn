@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bs452factbahd"]
 
-[ext_resource type="Material" uid="uid://bepn6ah13amc" path="res://assets/levels/1/materials/concrete-walls/Concrete008_2K-PNG.tres" id="1_vrv6m"]
+[ext_resource type="Material" path="res://assets/levels/1/materials/concrete/Concrete019_2K-PNG.tres" id="1_vrv6m"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_yfus7"]
 lightmap_size_hint = Vector2i(14, 56)

@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://caknkcj1jc0s3"]
+
+[ext_resource type="PackedScene" uid="uid://cvoa11gaphkpn" path="res://assets/levels/1/meshes/garden_foliage/GardenFoliage.glb" id="1_32aka"]
+[ext_resource type="Material" uid="uid://cbmblrdxn2bmw" path="res://assets/levels/1/materials/grass/Grass007_2K-PNG.tres" id="2_f5m08"]
+
+[node name="GardenFoliage" unique_id=333943967 instance=ExtResource("1_32aka")]
+
+[node name="Garden_Foliage" parent="." index="0" unique_id=656922659]
+material_override = ExtResource("2_f5m08")

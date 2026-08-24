@@ -41,9 +41,9 @@ const BOB_LERP_SPEED = 10.0
 var bob_timer: float = 0.0
 
 # Tuned Stamina Rates
-const STAMINA_DRAIN_RATE = 10.0
-const STAMINA_WALK_REGEN = 12.0
-const STAMINA_IDLE_REGEN = 25.0
+const STAMINA_DRAIN_RATE = 5.0
+const STAMINA_WALK_REGEN = 15.0
+const STAMINA_IDLE_REGEN = 30.0
 
 # Dynamic Footstep Cadence
 const BASE_STEP_INTERVAL = 0.36

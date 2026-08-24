@@ -7,65 +7,69 @@ extends Node3D
 @export var corridor_room_scene: PackedScene
 @export var wall_scene: PackedScene = preload("res://assets/levels/1/meshes/wall.tscn")
 
-# Handcrafted POI Anchors (Base Alpha, Trader's Keep, Hippocrates-1, etc.)
-@export var base_alpha_scene: PackedScene
-@export var traders_keep_scene: PackedScene
-@export var hippocrates_1_scene: PackedScene
-@export var cornucopia_scene: PackedScene
-@export var registration_spot_scene: PackedScene
-@export var toms_diner_scene: PackedScene
+# Sector Specific Landmarks / Props
+@export var gothic_pillar_scene: PackedScene = preload("res://assets/levels/1/meshes/gothic_pillar.tscn")
+@export var ouroboros_pipes_scene: PackedScene = preload("res://assets/levels/1/meshes/ouroboros_pipes.tscn")
+@export var garden_foliage_scene: PackedScene = preload("res://assets/levels/1/meshes/garden_foliage.tscn")
+@export var fabled_wood_wall_scene: PackedScene = preload("res://assets/levels/1/meshes/fabled_wood_wall.tscn")
 
-# Props & Objects (Level 1 Supply Crates)
-@export var crate_prop_scene: PackedScene
+# Lore-Accurate Settlement Landmarks (POIs)
+@export var base_alpha_scene: PackedScene = preload("res://assets/levels/1/chunks/base_alpha.tscn")            # Aquila Sector (3x3)
+@export var traders_keep_scene: PackedScene = preload("res://assets/levels/1/chunks/traders_keep.tscn")        # Gild Sector (3x3)
+@export var hippocrates_1_scene: PackedScene = preload("res://assets/levels/1/chunks/hippocrates_1.tscn")      # Gothic Sector (3x3)
+@export var cornucopia_scene: PackedScene = preload("res://assets/levels/1/chunks/cornucopia.tscn")            # Ouroboros Sector (3x3)
+@export var registration_spot_scene: PackedScene = preload("res://assets/levels/1/chunks/registration_spot.tscn") # Garden Sector (2x2)
+@export var toms_diner_scene: PackedScene = preload("res://assets/levels/1/chunks/toms_diner.tscn")            # Fabled Sector (3x3)
+
+# Level 1 Specific Props (Supply Crates / Storage Loot)
+@export var crate_prop_scene: PackedScene = preload("res://assets/levels/1/meshes/crate/crate.tscn")
 
 # Environmental Mechanics
 @export var enable_blackout_events: bool = true
 
-# Grid & Layout Parameters
-const ROOM_SIZE: float = 12.0         # 12x12m Room Module Size
+# Grid Configuration (12x12m Room Chunks)
+const ROOM_SIZE: float = 12.0
 const MACRO_SIZE: int = 6             # Macro-Block Size (6x6 rooms = 72x72m)
-const RENDER_DISTANCE: int = 4        # Room radius (9x9 grid loaded)
+const RENDER_DISTANCE: int = 4        # Room radius loaded around player
 const LOD_0_DIST: int = 2             # Active collision radius
 const WALL_HEIGHT: float = 4.0        # Level 1 Concrete Ceiling Height
 const WALL_THICKNESS: float = 0.4     # Concrete Wall Thickness
-const DOOR_WIDTH: float = 2.4         # Exit Doorway Opening Width
+const CORRIDOR_WIDTH: float = 4.0     # Procedural corridor width
 const BASE_LIGHT_ENERGY: float = 1.2
 
-# Salts for Level 1 POIs & Phenomena
-const BASE_ALPHA_SALT: int = 11111
-const TRADERS_KEEP_SALT: int = 22222
-const HIPPOCRATES_SALT: int = 33333
-const DINER_SALT: int = 66666
 const SHIFT_SALT: int = 77777
 
 var SEED: int = int(Time.get_unix_time_from_system())
 
-# Noise Generators
+# Noise Generators for Layout and Sectors
+var layout_noise: FastNoiseLite
 var sector_noise: FastNoiseLite
+var hallway_noise: FastNoiseLite
 
 # State Tracking
 var loaded_rooms: Dictionary = {}
 var room_shift_versions: Dictionary = {}
 var last_player_room: Vector2i = Vector2i(99999, 99999)
 
-# Level 1 Sectors based on official lore nomenclature
+# Official Level 1 Sectors
 enum SectorType {
-	AQUILA,    # Standard Concrete Parking Structure (M.E.G. Base Alpha territory)
-	GILD,      # Storage Warehouse & B.N.T.G. Trader's Keep hub
-	GOTHIC,    # Arches, Round Pillars & Hippocrates-1 medical sector
-	OUROBOROS, # Ongoing Structural Maintenance & Construction Zones
-	GARDEN,    # Overgrown Mossy Concrete and Damp Zones
-	FABLED     # Antique Wood and Altered Anomalous Corridors
-}
-
-enum MacroBlockType {
-	SINGLE_RECT_HALL,
-	JOINED_RECT_HALL,
-	POI_COMPOUND,      # M.E.G. Bases, Trader hubs, or Diner rest stops
-	CORRIDOR_MAZE
+	AQUILA,    # Concrete parking lot style (Base Alpha)
+	GILD,      # Warehouse storage style (Trader's Keep & Crates)
+	Gothic,    # Arched circular pillars (Hippocrates-1)
+	OUROBOROS, # Construction zone & exposed pipes (Camp Cornucopia)
+	GARDEN,    # Overgrown green mossy zone (Registration Spots)
+	FABLED     # Antique wood & altered corridors (Tom's Diner)
 }
 
 func _ready() -> void:
+	layout_noise = FastNoiseLite.new()
+	layout_noise.seed = SEED + 300
+	layout_noise.frequency = 0.10
+
+	hallway_noise = FastNoiseLite.new()
+	hallway_noise.seed = SEED + 450
+	hallway_noise.frequency = 0.28 # Controls webbing of procedural corridor routes
+
 	sector_noise = FastNoiseLite.new()
 	sector_noise.seed = SEED + 202
 	sector_noise.frequency = 0.015
@@ -109,14 +113,14 @@ func _process(_delta: float) -> void:
 		player.is_frozen = false
 
 # ==========================================
-# SECTOR CLASSIFICATION
+# SECTOR CLASSIFICATION SYSTEM
 # ==========================================
 func get_sector_at(coords: Vector2i) -> SectorType:
 	var val = sector_noise.get_noise_2d(float(coords.x), float(coords.y))
 	if val < -0.35:
 		return SectorType.GARDEN
 	elif val < -0.18:
-		return SectorType.GOTHIC
+		return SectorType.Gothic
 	elif val < 0.0:
 		return SectorType.AQUILA
 	elif val < 0.20:
@@ -127,123 +131,7 @@ func get_sector_at(coords: Vector2i) -> SectorType:
 		return SectorType.FABLED
 
 # ==========================================
-# MACRO-GRID RECTANGULAR LAYOUT ENGINE
-# ==========================================
-func get_chunk_layout_info(coords: Vector2i) -> Dictionary:
-	if abs(coords.x) <= 1 and abs(coords.y) <= 1:
-		return {
-			"is_hall": true,
-			"is_poi": false,
-			"poi_type": "",
-			"scene_type": "hall",
-			"north_wall": false,
-			"south_wall": false,
-			"east_wall": false,
-			"west_wall": false,
-			"north_door": false,
-			"south_door": false,
-			"east_door": false,
-			"west_door": false
-		}
-
-	var macro_x = floori(float(coords.x) / float(MACRO_SIZE))
-	var macro_z = floori(float(coords.y) / float(MACRO_SIZE))
-	var macro_pos = Vector2i(macro_x, macro_z)
-
-	var local_x = posmod(coords.x, MACRO_SIZE)
-	var local_z = posmod(coords.y, MACRO_SIZE)
-
-	var macro_hash = get_2d_hash(macro_pos.x, macro_pos.y, 99999)
-
-	var block_type = MacroBlockType.SINGLE_RECT_HALL
-	if macro_hash < 0.08:
-		block_type = MacroBlockType.POI_COMPOUND
-	elif macro_hash < 0.45:
-		block_type = MacroBlockType.JOINED_RECT_HALL
-	elif macro_hash < 0.80:
-		block_type = MacroBlockType.SINGLE_RECT_HALL
-	else:
-		block_type = MacroBlockType.CORRIDOR_MAZE
-
-	var rect_1 = Rect2i(1, 1, 4, 4)
-	var rect_2 = Rect2i(1, 1, 0, 0)
-
-	if block_type == MacroBlockType.JOINED_RECT_HALL:
-		rect_1 = Rect2i(1, 1, 4, 3)
-		rect_2 = Rect2i(3, 4, 2, 2)
-	elif block_type == MacroBlockType.POI_COMPOUND:
-		rect_1 = Rect2i(1, 1, 3, 3)
-
-	var local_p = Vector2i(local_x, local_z)
-	var in_rect_1 = rect_1.has_point(local_p)
-	var in_rect_2 = rect_2.has_point(local_p)
-	var is_hall = in_rect_1 or in_rect_2
-
-	if block_type == MacroBlockType.CORRIDOR_MAZE:
-		is_hall = false
-
-	var n_wall = false
-	var s_wall = false
-	var e_wall = false
-	var w_wall = false
-
-	var n_door = false
-	var s_door = false
-	var e_door = false
-	var w_door = false
-
-	if is_hall:
-		var half_r1_x = floori(float(rect_1.size.x) * 0.5)
-		var half_r1_z = floori(float(rect_1.size.y) * 0.5)
-
-		if not rect_1.has_point(local_p + Vector2i(0, -1)) and not rect_2.has_point(local_p + Vector2i(0, -1)):
-			n_wall = true
-			if local_x == rect_1.position.x + half_r1_x:
-				n_door = true
-
-		if not rect_1.has_point(local_p + Vector2i(0, 1)) and not rect_2.has_point(local_p + Vector2i(0, 1)):
-			s_wall = true
-			if local_x == rect_1.position.x + half_r1_x:
-				s_door = true
-
-		if not rect_1.has_point(local_p + Vector2i(-1, 0)) and not rect_2.has_point(local_p + Vector2i(-1, 0)):
-			w_wall = true
-			if local_z == rect_1.position.y + half_r1_z:
-				w_door = true
-
-		if not rect_1.has_point(local_p + Vector2i(1, 0)) and not rect_2.has_point(local_p + Vector2i(1, 0)):
-			e_wall = true
-			if local_z == rect_1.position.y + half_r1_z:
-				e_door = true
-
-	# POI Spawns mapping to Base Alpha, Trader's Keep, Hippocrates-1, or Tom's Diner
-	var poi_type = ""
-	if block_type == MacroBlockType.POI_COMPOUND and local_x == 2 and local_z == 2:
-		var poi_hash = get_2d_hash(macro_pos.x, macro_pos.y, 888)
-		if poi_hash < 0.25:
-			poi_type = "base_alpha"
-		elif poi_hash < 0.50:
-			poi_type = "traders_keep"
-		elif poi_hash < 0.75:
-			poi_type = "hippocrates_1"
-		else:
-			poi_type = "diner"
-
-	return {
-		"is_hall": is_hall,
-		"poi_type": poi_type,
-		"north_wall": n_wall,
-		"south_wall": s_wall,
-		"east_wall": e_wall,
-		"west_wall": w_wall,
-		"north_door": n_door,
-		"south_door": s_door,
-		"east_door": e_door,
-		"west_door": w_door
-	}
-
-# ==========================================
-# PERIPHERAL SHIFT SYSTEM (Level 1 Spatial Reconfig)
+# PERIPHERAL SHIFT SYSTEM
 # ==========================================
 func _apply_peripheral_shift(player_room: Vector2i) -> void:
 	if not is_instance_valid(player) or not player.has_method("get_camera_forward"):
@@ -257,6 +145,9 @@ func _apply_peripheral_shift(player_room: Vector2i) -> void:
 
 	var keys = loaded_rooms.keys()
 	for coords in keys:
+		if is_in_poi_zone(coords):
+			continue
+
 		var room_center = Vector3(coords.x * ROOM_SIZE + (ROOM_SIZE * 0.5), 0.0, coords.y * ROOM_SIZE + (ROOM_SIZE * 0.5))
 		var dir_to_room = (room_center - cam_pos).normalized()
 		dir_to_room.y = 0
@@ -296,36 +187,86 @@ func update_rooms() -> void:
 		if not coords in needed_rooms:
 			despawn_room(coords)
 
+# ==========================================
+# SECTOR-LOCKED LANDMARK / POI LOGIC
+# ==========================================
+func get_macro_poi_info(macro_x: int, macro_z: int) -> Dictionary:
+	var hash_val = get_2d_hash(macro_x, macro_z, 7777)
+
+	# FIXED: POIs now have an 85% chance to spawn instead of 22%, populating the world with actual landmarks!
+	if hash_val > 0.85:
+		return {"type": "", "size": 0}
+
+	var sample_coords = Vector2i(macro_x * MACRO_SIZE + 2, macro_z * MACRO_SIZE + 2)
+	var sector = get_sector_at(sample_coords)
+
+	match sector:
+		SectorType.AQUILA:
+			if base_alpha_scene: return {"type": "base_alpha", "size": 3}
+		SectorType.GILD:
+			if traders_keep_scene: return {"type": "traders_keep", "size": 3}
+		SectorType.Gothic:
+			if hippocrates_1_scene: return {"type": "hippocrates_1", "size": 3}
+		SectorType.OUROBOROS:
+			if cornucopia_scene: return {"type": "cornucopia", "size": 3}
+		SectorType.GARDEN:
+			if registration_spot_scene: return {"type": "registration_spot", "size": 2}
+		SectorType.FABLED:
+			if toms_diner_scene: return {"type": "diner", "size": 3}
+
+	return {"type": "", "size": 0}
+
+func get_poi_data_for_room(coords_2d: Vector2i) -> Dictionary:
+	var macro_x = floori(float(coords_2d.x) / float(MACRO_SIZE))
+	var macro_z = floori(float(coords_2d.y) / float(MACRO_SIZE))
+
+	for mx in range(macro_x - 1, macro_x + 1):
+		for mz in range(macro_z - 1, macro_z + 1):
+			var info = get_macro_poi_info(mx, mz)
+			if info["type"] != "":
+				var base_x = (mx * MACRO_SIZE) + 1
+				var base_z = (mz * MACRO_SIZE) + 1
+				var size = info["size"]
+
+				if coords_2d.x >= base_x and coords_2d.x < base_x + size and \
+						coords_2d.y >= base_z and coords_2d.y < base_z + size:
+					return {
+						"type": info["type"],
+						"is_anchor": (coords_2d.x == base_x and coords_2d.y == base_z)
+					}
+	return {"type": "", "is_anchor": false}
+
+func is_in_poi_zone(coords_2d: Vector2i) -> bool:
+	return get_poi_data_for_room(coords_2d)["type"] != ""
+
 func spawn_room(coords: Vector2i, enable_collision: bool) -> void:
-	var layout = get_chunk_layout_info(coords)
 	var sector = get_sector_at(coords)
+	var poi_data = {"type": "", "is_anchor": false}
+	if abs(coords.x) > 1 or abs(coords.y) > 1:
+		poi_data = get_poi_data_for_room(coords)
+
 	var instance: Node3D
+	var is_corridor = false
+	var is_poi_room = (poi_data["type"] != "")
 
-	var poi_type: String = layout.get("poi_type", "")
-
-	if poi_type != "":
-		match poi_type:
-			"base_alpha":
-				instance = base_alpha_scene.instantiate() if base_alpha_scene else hall_room_scene.instantiate()
-			"traders_keep":
-				instance = traders_keep_scene.instantiate() if traders_keep_scene else hall_room_scene.instantiate()
-			"hippocrates_1":
-				instance = hippocrates_1_scene.instantiate() if hippocrates_1_scene else hall_room_scene.instantiate()
-			"diner":
-				instance = toms_diner_scene.instantiate() if toms_diner_scene else hall_room_scene.instantiate()
-	elif layout.get("is_hall", false):
-		if hall_room_scene:
-			instance = hall_room_scene.instantiate()
+	if is_poi_room:
+		if poi_data["is_anchor"]:
+			match poi_data["type"]:
+				"base_alpha": instance = base_alpha_scene.instantiate()
+				"traders_keep": instance = traders_keep_scene.instantiate()
+				"hippocrates_1": instance = hippocrates_1_scene.instantiate()
+				"cornucopia": instance = cornucopia_scene.instantiate()
+				"registration_spot": instance = registration_spot_scene.instantiate()
+				"diner": instance = toms_diner_scene.instantiate()
+				_: instance = hall_room_scene.instantiate()
 		else:
-			return
+			instance = Node3D.new()
 	else:
-		if corridor_room_scene:
+		is_corridor = abs(hallway_noise.get_noise_2d(float(coords.x), float(coords.y))) > 0.40
+		if is_corridor and corridor_room_scene:
 			instance = corridor_room_scene.instantiate()
-		elif hall_room_scene:
-			instance = hall_room_scene.instantiate()
-
-	if not instance:
-		return
+		else:
+			instance = hall_room_scene.instantiate() if hall_room_scene else Node3D.new()
 
 	add_child(instance)
 
@@ -333,76 +274,105 @@ func spawn_room(coords: Vector2i, enable_collision: bool) -> void:
 	var world_z = coords.y * ROOM_SIZE
 	instance.global_position = Vector3(world_x, 0.0, world_z)
 
-	if layout.get("is_hall", false) and poi_type == "":
-		_construct_hall_boundary_walls(instance, layout, enable_collision)
+	# FIXED: Only skip procedural *walls* if using a pre-made room/POI, but ALWAYS allow sector landmarks (pipes, foliage, etc.) to spawn!
+	if not is_poi_room:
+		if is_corridor and not corridor_room_scene:
+			_generate_procedural_corridor(instance, coords, enable_collision)
+		else:
+			# This handles internal layout walls if needed, while letting landmarks spawn
+			_generate_sector_geometry(instance, coords, enable_collision, sector)
+
+	# Always allow supply crates and sector landmarks in standard non-POI rooms
+	if poi_data["type"] == "":
+		_try_spawn_supply_crates(instance, coords, sector)
+		# Explicitly guarantee sector landmarks spawn in standard rooms
+		_spawn_sector_landmarks(instance, coords, sector)
 
 	_apply_sector_styling(instance, sector)
-	_try_spawn_crate_props(instance, coords, sector)
 	_apply_room_lighting(instance, coords)
-
 	update_room_collision_state(instance, enable_collision)
 	loaded_rooms[coords] = instance
 
+# Helper function cleaned up so it doesn't suppress sector landmarks
+func is_prebound_or_premade(poi_data: Dictionary, is_corridor: bool) -> bool:
+	if poi_data["type"] != "":
+		return true
+	if is_corridor and corridor_room_scene:
+		return true
+	return false
+
 # ==========================================
-# WAREHOUSE BOUNDARY WALL BUILDER
+# PROCEDURAL CORRIDOR GENERATOR & SIDE ROOMS
 # ==========================================
-func _construct_hall_boundary_walls(chunk_node: Node3D, layout: Dictionary, enable_collision: bool) -> void:
-	var wall_h = WALL_HEIGHT * 0.5
-	var half_s = ROOM_SIZE * 0.5
+func _generate_procedural_corridor(chunk_node: Node3D, coords: Vector2i, enable_collision: bool) -> void:
+	if abs(coords.x) <= 1 and abs(coords.y) <= 1:
+		return
 
-	if layout.get("north_wall", false) or layout.get("west_wall", false) or layout.get("south_wall", false) or layout.get("east_wall", false):
-		spawn_wall_box(chunk_node, Vector3(0, wall_h, 0), Vector3(1.0, WALL_HEIGHT, 1.0), enable_collision)
-		spawn_wall_box(chunk_node, Vector3(ROOM_SIZE, wall_h, 0), Vector3(1.0, WALL_HEIGHT, 1.0), enable_collision)
-		spawn_wall_box(chunk_node, Vector3(0, wall_h, ROOM_SIZE), Vector3(1.0, WALL_HEIGHT, 1.0), enable_collision)
-		spawn_wall_box(chunk_node, Vector3(ROOM_SIZE, wall_h, ROOM_SIZE), Vector3(1.0, WALL_HEIGHT, 1.0), enable_collision)
+	var half_w = CORRIDOR_WIDTH * 0.5
+	spawn_wall_segment_custom(chunk_node, Vector3(-ROOM_SIZE * 0.5 + half_w, 0.0, 0.0), Vector3(WALL_THICKNESS, WALL_HEIGHT, ROOM_SIZE), enable_collision)
+	spawn_wall_segment_custom(chunk_node, Vector3(ROOM_SIZE * 0.5 - half_w, 0.0, 0.0), Vector3(WALL_THICKNESS, WALL_HEIGHT, ROOM_SIZE), enable_collision)
 
-	if layout.get("north_wall", false):
-		_build_wall_face(chunk_node, Vector3(half_s, wall_h, 0.0), Vector3(ROOM_SIZE, WALL_HEIGHT, WALL_THICKNESS), layout.get("north_door", false), true, enable_collision)
+	var room_hash = get_2d_hash(coords.x, coords.y, 444)
+	if room_hash < 0.40:
+		spawn_wall_segment_custom(chunk_node, Vector3(0.0, 0.0, -ROOM_SIZE * 0.5), Vector3(ROOM_SIZE, WALL_HEIGHT, WALL_THICKNESS), enable_collision)
 
-	if layout.get("south_wall", false):
-		_build_wall_face(chunk_node, Vector3(half_s, wall_h, ROOM_SIZE), Vector3(ROOM_SIZE, WALL_HEIGHT, WALL_THICKNESS), layout.get("south_door", false), true, enable_collision)
+# ==========================================
+# SECTOR-SPECIFIC ARCHITECTURAL GEOMETRY
+# ==========================================
+func _generate_sector_geometry(chunk_node: Node3D, coords: Vector2i, enable_collision: bool, sector: SectorType) -> void:
+	if abs(coords.x) <= 1 and abs(coords.y) <= 1:
+		return
 
-	if layout.get("west_wall", false):
-		_build_wall_face(chunk_node, Vector3(0.0, wall_h, half_s), Vector3(WALL_THICKNESS, WALL_HEIGHT, ROOM_SIZE), layout.get("west_door", false), false, enable_collision)
+	var layout_val = layout_noise.get_noise_2d(float(coords.x), float(coords.y))
 
-	if layout.get("east_wall", false):
-		_build_wall_face(chunk_node, Vector3(ROOM_SIZE, wall_h, half_s), Vector3(WALL_THICKNESS, WALL_HEIGHT, ROOM_SIZE), layout.get("east_door", false), false, enable_collision)
+	# FIXED: Drastically lowered noise thresholds to force dense, claustrophobic maze generation (no more empty flatgrass maps!)
+	if layout_val > 0.05:
+		spawn_wall_segment(chunk_node, Vector3(0.0, 0.0, -ROOM_SIZE * 0.5), Vector3(ROOM_SIZE, WALL_HEIGHT, WALL_THICKNESS), enable_collision, sector)
+		if layout_val > 0.20:
+			spawn_wall_segment(chunk_node, Vector3(ROOM_SIZE * 0.5, 0.0, 0.0), Vector3(WALL_THICKNESS, WALL_HEIGHT, ROOM_SIZE), enable_collision, sector)
+	elif layout_val < -0.05:
+		spawn_wall_segment(chunk_node, Vector3(-ROOM_SIZE * 0.5, 0.0, 0.0), Vector3(WALL_THICKNESS, WALL_HEIGHT, ROOM_SIZE), enable_collision, sector)
+		if layout_val < -0.20:
+			spawn_wall_segment(chunk_node, Vector3(0.0, 0.0, ROOM_SIZE * 0.5), Vector3(ROOM_SIZE, WALL_HEIGHT, WALL_THICKNESS), enable_collision, sector)
 
-func _build_wall_face(chunk_node: Node3D, pos: Vector3, size: Vector3, is_doorway: bool, is_horizontal: bool, enable_collision: bool) -> void:
-	if not is_doorway:
-		spawn_wall_box(chunk_node, pos, size, enable_collision)
-	else:
-		var side_w = (ROOM_SIZE - DOOR_WIDTH) * 0.5
-		var header_h = 1.2
-		var header_y = WALL_HEIGHT - (header_h * 0.5)
+	_spawn_sector_landmarks(chunk_node, coords, sector)
 
-		if is_horizontal:
-			var p1 = pos + Vector3(-ROOM_SIZE * 0.5 + side_w * 0.5, 0, 0)
-			var p2 = pos + Vector3(ROOM_SIZE * 0.5 - side_w * 0.5, 0, 0)
-			var p_head = Vector3(pos.x, header_y, pos.z)
-
-			spawn_wall_box(chunk_node, p1, Vector3(side_w, WALL_HEIGHT, WALL_THICKNESS), enable_collision)
-			spawn_wall_box(chunk_node, p2, Vector3(side_w, WALL_HEIGHT, WALL_THICKNESS), enable_collision)
-			spawn_wall_box(chunk_node, p_head, Vector3(DOOR_WIDTH, header_h, WALL_THICKNESS), enable_collision)
-		else:
-			var p1 = pos + Vector3(0, 0, -ROOM_SIZE * 0.5 + side_w * 0.5)
-			var p2 = pos + Vector3(0, 0, ROOM_SIZE * 0.5 - side_w * 0.5)
-			var p_head = Vector3(pos.x, header_y, pos.z)
-
-			spawn_wall_box(chunk_node, p1, Vector3(WALL_THICKNESS, WALL_HEIGHT, side_w), enable_collision)
-			spawn_wall_box(chunk_node, p2, Vector3(WALL_THICKNESS, WALL_HEIGHT, side_w), enable_collision)
-			spawn_wall_box(chunk_node, p_head, Vector3(WALL_THICKNESS, header_h, DOOR_WIDTH), enable_collision)
-
-func spawn_wall_box(parent_chunk: Node3D, local_pos: Vector3, dimensions: Vector3, enable_collision: bool) -> void:
+# ==========================================
+# THE MESH PROTECTOR (CUSTOM WALL HANDLER)
+# ==========================================
+func spawn_wall_segment(parent_chunk: Node3D, local_offset: Vector3, dimensions: Vector3, enable_collision: bool, sector: SectorType) -> void:
 	var wall_instance: Node3D
+	var is_custom_mesh = false
 
-	if wall_scene:
+	# 1. Spawn the correct scene based on sector
+	if sector == SectorType.FABLED and fabled_wood_wall_scene:
+		wall_instance = fabled_wood_wall_scene.instantiate() as Node3D
+		is_custom_mesh = true
+	elif wall_scene:
 		wall_instance = wall_scene.instantiate() as Node3D
 	else:
 		wall_instance = Node3D.new()
 
 	parent_chunk.add_child(wall_instance)
-	wall_instance.position = local_pos
+
+	# 2. If it's a custom mesh (like the Fabled Wood Wall), keep Y at 0.0 so it sits on the floor correctly!
+	if is_custom_mesh:
+		wall_instance.position = Vector3(local_offset.x, 0.0, local_offset.z)
+
+		# Rotate 90 degrees if it is placed on the Z-axis (Side walls)
+		if dimensions.z > dimensions.x:
+			wall_instance.rotation.y = PI / 2.0
+
+		# Update the hidden collision bounds so the player bumps into it properly
+		var custom_col = wall_instance.find_child("*CollisionShape3D*", true, false) as CollisionShape3D
+		if custom_col and custom_col.shape is BoxShape3D:
+			custom_col.shape.size = dimensions
+			custom_col.disabled = not enable_collision
+
+		return # EXIT EARLY so procedural concrete logic doesn't touch it
+
+	# 3. Standard Procedural Concrete Wall Generation (Only these use the half-height offset)
+	wall_instance.position = Vector3(local_offset.x, WALL_HEIGHT * 0.5, local_offset.z)
 
 	var mesh_node = wall_instance.find_child("*MeshInstance3D*", true, false) as MeshInstance3D
 	if not mesh_node and wall_instance is MeshInstance3D:
@@ -440,51 +410,82 @@ func spawn_wall_box(parent_chunk: Node3D, local_pos: Vector3, dimensions: Vector
 	col_shape.shape = box_shape
 	col_shape.disabled = not enable_collision
 
+func spawn_wall_segment_custom(parent_chunk: Node3D, local_offset: Vector3, dimensions: Vector3, enable_collision: bool) -> void:
+	spawn_wall_segment(parent_chunk, local_offset, dimensions, enable_collision, SectorType.AQUILA)
+
+func _spawn_sector_landmarks(chunk_node: Node3D, coords: Vector2i, sector: SectorType) -> void:
+	var hash_val = get_2d_hash(coords.x, coords.y, 555)
+
+	match sector:
+		SectorType.Gothic:
+			# FIXED: Spawns a perfectly tiled continuous 6-meter grid of pillars across the ENTIRE sector.
+			if gothic_pillar_scene:
+				var pillar_offsets = [
+					Vector3(-3.0, 0.0, -3.0),
+					Vector3(3.0, 0.0, -3.0),
+					Vector3(-3.0, 0.0, 3.0),
+					Vector3(3.0, 0.0, 3.0)
+				]
+				for offset in pillar_offsets:
+					var pillar = gothic_pillar_scene.instantiate() as Node3D
+					chunk_node.add_child(pillar)
+					pillar.position = offset
+		SectorType.OUROBOROS:
+			if hash_val < 0.35 and ouroboros_pipes_scene: # Better spawn rate
+				var pipes = ouroboros_pipes_scene.instantiate() as Node3D
+				chunk_node.add_child(pipes)
+				pipes.position = Vector3(0.0, 0.0, 0.0) # Y used to be: WALL_HEIGHT * 0.8
+		SectorType.GARDEN:
+			if hash_val < 0.40 and garden_foliage_scene: # Better spawn rate
+				var foliage = garden_foliage_scene.instantiate() as Node3D
+				chunk_node.add_child(foliage)
+				foliage.position = Vector3((randf() - 0.5) * 6.0, 0.0, (randf() - 0.5) * 6.0)
+		_:
+			pass
+
 # ==========================================
-# SECTOR STYLING & SUPPLY CRATES
+# SECTOR STYLING & TIDY CORNER CRATES
 # ==========================================
 func _apply_sector_styling(room_node: Node3D, sector: SectorType) -> void:
 	match sector:
-		SectorType.AQUILA:
-			room_node.set_meta("sector_name", "Aquila")
-		SectorType.GILD:
-			room_node.set_meta("sector_name", "Gild")
-		SectorType.GOTHIC:
-			room_node.set_meta("sector_name", "Gothic")
-		SectorType.OUROBOROS:
-			room_node.set_meta("sector_name", "Ouroboros")
-		SectorType.GARDEN:
-			room_node.set_meta("sector_name", "Garden")
-		SectorType.FABLED:
-			room_node.set_meta("sector_name", "Fabled")
+		SectorType.AQUILA: room_node.set_meta("sector_name", "Aquila")
+		SectorType.GILD: room_node.set_meta("sector_name", "Gild")
+		SectorType.Gothic: room_node.set_meta("sector_name", "Gothic")
+		SectorType.OUROBOROS: room_node.set_meta("sector_name", "Ouroboros")
+		SectorType.GARDEN: room_node.set_meta("sector_name", "Garden")
+		SectorType.FABLED: room_node.set_meta("sector_name", "Fabled")
 
-func _try_spawn_crate_props(room_node: Node3D, coords: Vector2i, sector: SectorType) -> void:
+func _try_spawn_supply_crates(room_node: Node3D, coords: Vector2i, sector: SectorType) -> void:
 	if not crate_prop_scene:
 		return
 
-	# Gild sector has high crate density per lore (Trader's Keep storage hubs)
-	var crate_chance = 0.65 if sector == SectorType.GILD else 0.20
+	# Lore Accurate: Gild sector spawns massive amounts of crates for the Trader's Keep.
+	var crate_chance = 0.55 if sector == SectorType.GILD else 0.20
 	if get_2d_hash(coords.x, coords.y, 8888) < crate_chance:
+		var corner_offset = ROOM_SIZE * 0.35
+		var x_sign = 1.0 if get_2d_hash(coords.x, coords.y, 111) > 0.5 else -1.0
+		var z_sign = 1.0 if get_2d_hash(coords.x, coords.y, 222) > 0.5 else -1.0
+
 		var crate = crate_prop_scene.instantiate() as Node3D
 		room_node.add_child(crate)
-		crate.position = Vector3(
-				(randf() - 0.5) * (ROOM_SIZE - 2.0),
-				0.4,
-				(randf() - 0.5) * (ROOM_SIZE - 2.0)
-		)
+		crate.position = Vector3(x_sign * corner_offset, 0.0, z_sign * corner_offset)
 
+# ==========================================
+# LIGHTING & BLACKOUT EVENTS (THE "FLICKERING")
+# ==========================================
 func _apply_room_lighting(room_node: Node3D, coords: Vector2i) -> void:
 	var lights = room_node.find_children("*", "Light3D", true, false)
-	# Level 1 features unpredictable blackouts and light fixture flickering
-	var is_blackout = enable_blackout_events and (get_2d_hash(coords.x, coords.y, 777) < 0.10)
-	var is_flicker_room = enable_blackout_events and not is_blackout and (get_2d_hash(coords.x, coords.y, 999) < 0.20)
+
+	# Lore Accurate: The "Flickering" where lights switch off and the dark entities lurk.
+	var is_blackout = enable_blackout_events and (get_2d_hash(coords.x, coords.y, 777) < 0.08)
+	var is_flicker = enable_blackout_events and not is_blackout and (get_2d_hash(coords.x, coords.y, 999) < 0.15)
 
 	for light in lights:
 		if light is Light3D:
 			if is_blackout:
 				light.light_energy = 0.0
 				light.visible = false
-			elif is_flicker_room:
+			elif is_flicker:
 				light.visible = true
 				light.light_energy = BASE_LIGHT_ENERGY * (0.1 + randf() * 0.6)
 			else:
@@ -510,7 +511,17 @@ func get_2d_hash(x: int, z: int, salt: int = 0) -> float:
 	h = (h ^ (h >> 13)) * 1274126177
 	return float(h & 0x7FFFFFFF) / float(0x7FFFFFFF)
 
-func is_room_walkable(_coords: Vector2i) -> bool:
+func is_room_walkable(coords: Vector2i) -> bool:
+	if abs(coords.x) <= 1 and abs(coords.y) <= 1:
+		return true
+	if is_in_poi_zone(coords):
+		return false
+
+	var layout_val = layout_noise.get_noise_2d(float(coords.x), float(coords.y))
+	# Must match the new tight layout maze geometry ranges
+	if layout_val > 0.05 or layout_val < -0.05:
+		return false
+
 	return true
 
 # ==========================================
@@ -520,7 +531,7 @@ func register_console_commands() -> void:
 	var console_node = get_node_or_null("/root/Console")
 	if console_node:
 		console_node.add_command("locate", _cmd_locate, 1)
-		var locate_targets = ["player", "base_alpha", "traders_keep", "hippocrates_1", "diner"]
+		var locate_targets = ["player", "base_alpha", "traders_keep", "hippocrates_1", "cornucopia", "registration_spot", "diner"]
 		console_node.add_command_autocomplete_list("locate", locate_targets)
 
 func _cmd_locate(target_name: String) -> void:
@@ -537,34 +548,34 @@ func _cmd_locate(target_name: String) -> void:
 				console_node.print_line("Player location: (%.1f, %.1f, %.1f)" % [pos.x, pos.y, pos.z])
 			else:
 				console_node.print_line("Error: Player node not found.")
-		"base_alpha":
-			_locate_nearest_poi(console_node, BASE_ALPHA_SALT, "Base Alpha")
-		"traders_keep":
-			_locate_nearest_poi(console_node, TRADERS_KEEP_SALT, "Trader's Keep")
-		"hippocrates_1":
-			_locate_nearest_poi(console_node, HIPPOCRATES_SALT, "Hippocrates-1")
-		"diner":
-			_locate_nearest_poi(console_node, DINER_SALT, "Tom's Diner")
-		_:
-			console_node.print_line("Unknown target. Options: player, base_alpha, traders_keep, hippocrates_1, diner")
+		"base_alpha": _locate_nearest_poi_type(console_node, "base_alpha", "Base Alpha")
+		"traders_keep": _locate_nearest_poi_type(console_node, "traders_keep", "Trader's Keep")
+		"hippocrates_1": _locate_nearest_poi_type(console_node, "hippocrates_1", "Hippocrates-1")
+		"cornucopia": _locate_nearest_poi_type(console_node, "cornucopia", "Camp Cornucopia")
+		"registration_spot": _locate_nearest_poi_type(console_node, "registration_spot", "Registration Spot")
+		"diner": _locate_nearest_poi_type(console_node, "diner", "Tom's Diner")
+		_: console_node.print_line("Unknown target. Options: player, base_alpha, traders_keep, hippocrates_1, cornucopia, registration_spot, diner")
 
-func _locate_nearest_poi(console_node: Node, poi_salt: int, poi_name: String) -> void:
+func _locate_nearest_poi_type(console_node: Node, target_type: String, poi_name: String) -> void:
 	var start_pos = player.global_position if is_instance_valid(player) else global_position
-
-	var current_room_x = floori(start_pos.x / ROOM_SIZE)
-	var current_room_z = floori(start_pos.z / ROOM_SIZE)
+	var current_macro_x = floori((start_pos.x / ROOM_SIZE) / float(MACRO_SIZE))
+	var current_macro_z = floori((start_pos.z / ROOM_SIZE) / float(MACRO_SIZE))
 
 	var nearest_pos := Vector3.ZERO
 	var shortest_dist_sq := INF
-	var search_radius := 100
+	var search_radius := 40
 
-	for rx in range(current_room_x - search_radius, current_room_x + search_radius + 1):
-		for rz in range(current_room_z - search_radius, current_room_z + search_radius + 1):
-			if get_2d_hash(rx, rz, poi_salt) < 0.002:
+	for mx in range(current_macro_x - search_radius, current_macro_x + search_radius + 1):
+		for mz in range(current_macro_z - search_radius, current_macro_z + search_radius + 1):
+			var info = get_macro_poi_info(mx, mz)
+			if info["type"] == target_type:
+				var anchor_chunk_x = (mx * MACRO_SIZE) + 1
+				var anchor_chunk_z = (mz * MACRO_SIZE) + 1
+
 				var poi_world_pos = Vector3(
-						(rx * ROOM_SIZE) + (ROOM_SIZE * 0.5),
+						anchor_chunk_x * ROOM_SIZE,
 						0.0,
-						(rz * ROOM_SIZE) + (ROOM_SIZE * 0.5)
+						anchor_chunk_z * ROOM_SIZE
 				)
 
 				var dist_sq = start_pos.distance_squared_to(poi_world_pos)

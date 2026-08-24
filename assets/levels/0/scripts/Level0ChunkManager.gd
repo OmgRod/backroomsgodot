@@ -232,7 +232,7 @@ func raw_manila_check(sector_x: int, sector_z: int) -> bool:
 		return false
 
 	var hash_val = get_2d_hash(sector_x, sector_z, MANILA_SALT)
-	return hash_val <= 0.005
+	return hash_val <= 0.2
 
 func is_in_manila_6x6_zone(coords_2d: Vector2i) -> bool:
 	var sector_x = floori(float(coords_2d.x) / SECTOR_SIZE_CHUNKS)

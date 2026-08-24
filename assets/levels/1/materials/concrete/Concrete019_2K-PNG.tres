@@ -1,0 +1,21 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://b3jcgbjbhtl8c"]
+
+[ext_resource type="Texture2D" uid="uid://bn142eitu0dx7" path="res://assets/levels/1/materials/concrete/Concrete019_2K-PNG_Color.png" id="Color"]
+[ext_resource type="Texture2D" uid="uid://bxj3mnbl3rvws" path="res://assets/levels/1/materials/concrete/Concrete019_2K-PNG_Displacement.png" id="Displacement"]
+[ext_resource type="Texture2D" uid="uid://byeyv4na3afpu" path="res://assets/levels/1/materials/concrete/Concrete019_2K-PNG_NormalGL.png" id="NormalGL"]
+[ext_resource type="Texture2D" uid="uid://4bgcyo4tbb3i" path="res://assets/levels/1/materials/concrete/Concrete019_2K-PNG_Roughness.png" id="Roughness"]
+
+[resource]
+albedo_texture = ExtResource("Color")
+roughness_texture = ExtResource("Roughness")
+roughness_texture_channel = 4
+normal_enabled = true
+normal_texture = ExtResource("NormalGL")
+heightmap_enabled = true
+heightmap_scale = 1.0
+heightmap_texture = ExtResource("Displacement")
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+uv1_triplanar_sharpness = 1e-05
+uv1_world_triplanar = true
+uv2_triplanar_sharpness = 1.9999999
